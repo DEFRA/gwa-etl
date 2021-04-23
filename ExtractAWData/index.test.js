@@ -3,7 +3,7 @@ const extractAWData = require('./index')
 const functionDef = require('./function')
 
 const context = require('../test/defaultContext')
-const generateDevices = require('../test/generateDevices')
+const { generateIPads, generateIPhones } = require('../test/generateDevices')
 const testEnvVars = require('../test/testEnvVars')
 
 jest.mock('node-fetch')
@@ -61,7 +61,7 @@ describe('ExtractAWData function', () => {
 
   test('user data is bound to correct output binding', async () => {
     const numberOfDevices = 1
-    const Devices = generateDevices(numberOfDevices)
+    const Devices = generateIPhones(numberOfDevices)
     const expectedResponse = { Devices, Page: 0, PageSize, Total: 0 }
     mockFetchResolvedJsonValueOnce(expectedResponse)
 
@@ -75,7 +75,7 @@ describe('ExtractAWData function', () => {
   })
 
   test('user data is only added when user has a UserEmailAddress', async () => {
-    const Devices = generateDevices(3)
+    const Devices = generateIPhones(3)
     delete Devices[1].UserEmailAddress
     delete Devices[2].PhoneNumber
     const expectedResponse = { Devices, Page: 0, PageSize, Total: 0 }
@@ -94,7 +94,7 @@ describe('ExtractAWData function', () => {
   })
 
   test('users with multiple devices have a single record with all phone numbers included', async () => {
-    const Devices = generateDevices(4)
+    const Devices = generateIPhones(4)
     Devices[2].UserEmailAddress = Devices[0].UserEmailAddress
     Devices[3].UserEmailAddress = Devices[1].UserEmailAddress
     Devices[3].PhoneNumber = ''
@@ -115,10 +115,25 @@ describe('ExtractAWData function', () => {
     expect(user2.phoneNumbers[0]).toEqual(Devices[1].PhoneNumber)
   })
 
+  test('do not export iPad devices', async () => {
+    const iPhones = generateIPhones(2)
+    const Devices = [...iPhones, ...generateIPads(2)]
+    const expectedResponse = { Devices, Page: 0, PageSize, Total: 0 }
+    mockFetchResolvedJsonValueOnce(expectedResponse)
+
+    await extractAWData(context)
+
+    expect(context.bindings[expectedOutputBindingName]).toHaveLength(2)
+    const user1 = context.bindings[expectedOutputBindingName][0]
+    expect(user1.phoneNumbers[0]).toEqual(iPhones[0].PhoneNumber)
+    const user2 = context.bindings[expectedOutputBindingName][1]
+    expect(user2.phoneNumbers[0]).toEqual(iPhones[1].PhoneNumber)
+  })
+
   test('logging during processing is correct', async () => {
-    const deviceCount = 3
-    const Total = deviceCount
-    const Devices = generateDevices(deviceCount)
+    const iPadCount = 2
+    const Devices = [...generateIPhones(3), ...generateIPads(iPadCount)]
+    const Total = Devices.length
     delete Devices[1].UserEmailAddress
     delete Devices[2].PhoneNumber
     const expectedResponse = { Devices, Page: 0, PageSize, Total }
@@ -126,15 +141,16 @@ describe('ExtractAWData function', () => {
 
     await extractAWData(context)
 
-    expect(context.log).toHaveBeenCalledTimes(8)
+    expect(context.log).toHaveBeenCalledTimes(9)
     expect(context.log).toHaveBeenNthCalledWith(1, `Request URL: https://${testEnvVars.AW_DOMAIN}/API/mdm/devices/search?pagesize=${PageSize}&page=0.`)
     expect(context.log).toHaveBeenNthCalledWith(2, `Response\nStatus: ${status} (${statusText})\nHeaders: {}`)
-    expect(context.log).toHaveBeenNthCalledWith(3, `DeviceCount: ${deviceCount}`)
+    expect(context.log).toHaveBeenNthCalledWith(3, `DeviceCount: ${Total}`)
     expect(context.log).toHaveBeenNthCalledWith(4, `Page: ${0}\nPageSize: ${PageSize}\nTotal: ${Total}`)
-    expect(context.log).toHaveBeenNthCalledWith(5, `Processed ${deviceCount} devices.`)
-    expect(context.log).toHaveBeenNthCalledWith(6, `Data extract from AW is complete.\n${deviceCount} devices have been processed.`)
+    expect(context.log).toHaveBeenNthCalledWith(5, `Processed ${Total} devices.`)
+    expect(context.log).toHaveBeenNthCalledWith(6, `Data extract from AW is complete.\n${Total} devices have been processed.`)
     expect(context.log).toHaveBeenNthCalledWith(7, `${2} devices have a UserEmailAddress of which ${1} have no PhoneNumber.`)
     expect(context.log).toHaveBeenNthCalledWith(8, `${1} devices with no UserEmailAddress.`)
+    expect(context.log).toHaveBeenNthCalledWith(9, `${iPadCount} iPads have been ignored.`)
   })
 
   test('an error is thrown (and logged) when an error occurs', async () => {
