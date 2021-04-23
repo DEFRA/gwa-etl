@@ -11,6 +11,7 @@ module.exports = async function (context) {
     let page = 0 // zero based
     let next = false
     let deviceCount = 0
+    let iPadCount = 0
     let noEmailCount = 0
     let noPhoneNumberCount = 0
 
@@ -35,25 +36,29 @@ module.exports = async function (context) {
       for (let i = 0; i < resDeviceCount; i++) {
         deviceCount++
         const device = Devices[i]
-        const { PhoneNumber: phoneNumber, UserEmailAddress: emailAddress } = device
+        const { ModelId: { Id: { Value } }, PhoneNumber: phoneNumber, UserEmailAddress: emailAddress } = device
 
-        if (emailAddress) {
-          let user = users.get(emailAddress)
-          if (phoneNumber) {
-            if (user) {
-              user.phoneNumbers.push(phoneNumber)
-            } else {
-              user = { emailAddress, phoneNumbers: [phoneNumber] }
-            }
-            users.set(emailAddress, user)
-          } else {
-            if (!user) {
-              users.set(emailAddress, user = { emailAddress, phoneNumbers: [] })
-            }
-            noPhoneNumberCount++
-          }
+        if (Value === 2) {
+          iPadCount++
         } else {
-          noEmailCount++
+          if (emailAddress) {
+            let user = users.get(emailAddress)
+            if (phoneNumber) {
+              if (user) {
+                user.phoneNumbers.push(phoneNumber)
+              } else {
+                user = { emailAddress, phoneNumbers: [phoneNumber] }
+              }
+              users.set(emailAddress, user)
+            } else {
+              if (!user) {
+                users.set(emailAddress, user = { emailAddress, phoneNumbers: [] })
+              }
+              noPhoneNumberCount++
+            }
+          } else {
+            noEmailCount++
+          }
         }
       }
       context.log(`Processed ${deviceCount} devices.`)
@@ -66,6 +71,7 @@ module.exports = async function (context) {
     context.log(`Data extract from AW is complete.\n${deviceCount} devices have been processed.`)
     context.log(`${users.size} devices have a UserEmailAddress of which ${noPhoneNumberCount} have no PhoneNumber.`)
     context.log(`${noEmailCount} devices with no UserEmailAddress.`)
+    context.log(`${iPadCount} iPads have been ignored.`)
   } catch (e) {
     context.log.error(e)
     // Throwing an error ensures the built-in retry will kick in
