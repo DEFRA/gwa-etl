@@ -71,7 +71,7 @@ describe('ExtractAWData function', () => {
     expect(context.bindings[expectedOutputBindingName]).toHaveLength(numberOfDevices)
     const device = context.bindings[expectedOutputBindingName][0]
     expect(device.emailAddress).toEqual(Devices[0].UserEmailAddress)
-    expect(device.phoneNumber).toEqual(Devices[0].PhoneNumber)
+    expect(device.phoneNumbers[0]).toEqual(Devices[0].PhoneNumber)
   })
 
   test('user data is only added when user has a UserEmailAddress', async () => {
@@ -85,12 +85,34 @@ describe('ExtractAWData function', () => {
 
     expect(context.bindings).toHaveProperty(expectedOutputBindingName)
     expect(context.bindings[expectedOutputBindingName]).toHaveLength(2)
-    const device1 = context.bindings[expectedOutputBindingName][0]
-    expect(device1.emailAddress).toEqual(Devices[0].UserEmailAddress)
-    expect(device1.phoneNumber).toEqual(Devices[0].PhoneNumber)
-    const device2 = context.bindings[expectedOutputBindingName][1]
-    expect(device2.emailAddress).toEqual(Devices[2].UserEmailAddress)
-    expect(device2.phoneNumber).toEqual(undefined)
+    const user1 = context.bindings[expectedOutputBindingName][0]
+    expect(user1.emailAddress).toEqual(Devices[0].UserEmailAddress)
+    expect(user1.phoneNumbers[0]).toEqual(Devices[0].PhoneNumber)
+    const user2 = context.bindings[expectedOutputBindingName][1]
+    expect(user2.emailAddress).toEqual(Devices[2].UserEmailAddress)
+    expect(user2.phoneNumbers[0]).toEqual(undefined)
+  })
+
+  test('users with multiple devices have a single record with all phone numbers included', async () => {
+    const Devices = generateDevices(4)
+    Devices[2].UserEmailAddress = Devices[0].UserEmailAddress
+    Devices[3].UserEmailAddress = Devices[1].UserEmailAddress
+    Devices[3].PhoneNumber = ''
+    const expectedResponse = { Devices, Page: 0, PageSize, Total: 0 }
+    mockFetchResolvedJsonValueOnce(expectedResponse)
+
+    await extractAWData(context)
+
+    expect(context.bindings[expectedOutputBindingName]).toHaveLength(2)
+    const user1 = context.bindings[expectedOutputBindingName][0]
+    expect(user1.emailAddress).toEqual(Devices[0].UserEmailAddress)
+    expect(user1.phoneNumbers).toHaveLength(2)
+    expect(user1.phoneNumbers[0]).toEqual(Devices[0].PhoneNumber)
+    expect(user1.phoneNumbers[1]).toEqual(Devices[2].PhoneNumber)
+    const user2 = context.bindings[expectedOutputBindingName][1]
+    expect(user2.emailAddress).toEqual(Devices[1].UserEmailAddress)
+    expect(user2.phoneNumbers).toHaveLength(1)
+    expect(user2.phoneNumbers[0]).toEqual(Devices[1].PhoneNumber)
   })
 
   test('logging during processing is correct', async () => {
