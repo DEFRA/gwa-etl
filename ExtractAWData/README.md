@@ -7,7 +7,7 @@
 
 The function triggers on a timer to make a request to the
 [AirWatch REST API](https://resources.workspaceone.com/view/zv5cgwjrcv972rd6fmml/en),
-specifically the `DevicesV2` (/devices/search) endpoint.
+specifically the `DevicesV2` (`/devices/search`) endpoint.
 
 All devices will be retrieved (500 per page) and for those devices with a
 `UserEmailAddress` both the email and `PhoneNumber` will be saved in a file
