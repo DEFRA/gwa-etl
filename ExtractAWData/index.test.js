@@ -19,12 +19,16 @@ function expectFetchRequestIsCorrect (url) {
 
 async function mockFetchResolvedJsonValueOnce (val) {
   fetch.mockResolvedValueOnce({
-    headers: { raw: () => { return JSON.stringify({}) } },
-    json: async () => { return val }
+    headers: { raw: () => { return {} } },
+    json: async () => { return val },
+    status,
+    statusText
   })
 }
 
 const expectedOutputBindingName = 'awUsers'
+const statusText = 'OK'
+const status = 200
 
 describe('ExtractAWData function', () => {
   const PageSize = 500
@@ -109,9 +113,9 @@ describe('ExtractAWData function', () => {
 
     expect(context.log).toHaveBeenCalledTimes(8)
     expect(context.log).toHaveBeenNthCalledWith(1, `Request URL: https://${testEnvVars.AW_DOMAIN}/API/mdm/devices/search?pagesize=${PageSize}&page=0.`)
-    expect(context.log).toHaveBeenNthCalledWith(2, '\nResponse:\nHeaders: {}')
-    expect(context.log).toHaveBeenNthCalledWith(3, `\nDeviceCount: ${deviceCount}`)
-    expect(context.log).toHaveBeenNthCalledWith(4, `\nPage: ${0}\nPageSize: ${PageSize}\nTotal: ${Total}`)
+    expect(context.log).toHaveBeenNthCalledWith(2, `Response\nStatus: ${status} (${statusText})\nHeaders: {}`)
+    expect(context.log).toHaveBeenNthCalledWith(3, `DeviceCount: ${deviceCount}`)
+    expect(context.log).toHaveBeenNthCalledWith(4, `Page: ${0}\nPageSize: ${PageSize}\nTotal: ${Total}`)
     expect(context.log).toHaveBeenNthCalledWith(5, `Processed ${deviceCount} devices.`)
     expect(context.log).toHaveBeenNthCalledWith(6, `Data extract from AW is complete.\n${deviceCount} devices have been processed.`)
     expect(context.log).toHaveBeenNthCalledWith(7, `${2} devices have a UserEmailAddress of which ${1} have no PhoneNumber.`)

@@ -1,8 +1,8 @@
 const fetch = require('node-fetch')
 
-const awTenantCode = process.env.AW_TENANT_CODE
 const awAuthHeader = process.env.AW_AUTH_HEADER
 const awDomain = process.env.AW_DOMAIN
+const awTenantCode = process.env.AW_TENANT_CODE
 
 module.exports = async function (context) {
   try {
@@ -28,9 +28,9 @@ module.exports = async function (context) {
 
       const { Devices, Page, PageSize, Total } = (await res.json())
       const resDeviceCount = Devices.length
-      context.log(`\nResponse:\nHeaders: ${res.headers.raw()}`)
-      context.log(`\nDeviceCount: ${resDeviceCount}`)
-      context.log(`\nPage: ${Page}\nPageSize: ${PageSize}\nTotal: ${Total}`)
+      context.log(`Response\nStatus: ${res.status} (${res.statusText})\nHeaders: ${JSON.stringify(res.headers.raw())}`)
+      context.log(`DeviceCount: ${resDeviceCount}`)
+      context.log(`Page: ${Page}\nPageSize: ${PageSize}\nTotal: ${Total}`)
 
       for (let i = 0; i < resDeviceCount; i++) {
         deviceCount++
