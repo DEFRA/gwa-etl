@@ -6,7 +6,7 @@ const awTenantCode = process.env.AW_TENANT_CODE
 
 module.exports = async function (context) {
   try {
-    const users = []
+    const users = new Map()
     const pageSize = 500 // default is 500 prefer to be specific
     let page = 0 // zero based
     let next = false
@@ -35,14 +35,23 @@ module.exports = async function (context) {
       for (let i = 0; i < resDeviceCount; i++) {
         deviceCount++
         const device = Devices[i]
-        if (device.UserEmailAddress) {
-          if (!device.PhoneNumber) {
+        const { PhoneNumber: phoneNumber, UserEmailAddress: emailAddress } = device
+
+        if (emailAddress) {
+          let user = users.get(emailAddress)
+          if (phoneNumber) {
+            if (user) {
+              user.phoneNumbers.push(phoneNumber)
+            } else {
+              user = { emailAddress, phoneNumbers: [phoneNumber] }
+            }
+            users.set(emailAddress, user)
+          } else {
+            if (!user) {
+              users.set(emailAddress, user = { emailAddress, phoneNumbers: [] })
+            }
             noPhoneNumberCount++
           }
-          users.push({
-            emailAddress: device.UserEmailAddress,
-            phoneNumber: device.PhoneNumber
-          })
         } else {
           noEmailCount++
         }
@@ -52,10 +61,10 @@ module.exports = async function (context) {
       next = page * pageSize < Total
     } while (next)
 
-    context.bindings.awUsers = users
+    context.bindings.awUsers = [...users.values()]
 
     context.log(`Data extract from AW is complete.\n${deviceCount} devices have been processed.`)
-    context.log(`${users.length} devices have a UserEmailAddress of which ${noPhoneNumberCount} have no PhoneNumber.`)
+    context.log(`${users.size} devices have a UserEmailAddress of which ${noPhoneNumberCount} have no PhoneNumber.`)
     context.log(`${noEmailCount} devices with no UserEmailAddress.`)
   } catch (e) {
     context.log.error(e)

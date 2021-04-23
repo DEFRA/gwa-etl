@@ -20,6 +20,9 @@ will still be in the system so they will be able to login to the web app and
 add additional devices. If only users with email and phone numbers were added
 this would not be possible.
 
+There are instances where a user (as determined by `UserEmailAddress`) has
+several phone numbers. In these case all phone numbers are included.
+
 ### Note on file `Content-Type`
 
 The file is saved via blob storage
