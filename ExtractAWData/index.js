@@ -52,7 +52,7 @@ module.exports = async function (context) {
               users.set(emailAddress, user)
             } else {
               if (!user) {
-                users.set(emailAddress, user = { emailAddress, phoneNumbers: [] })
+                users.set(emailAddress, { emailAddress, phoneNumbers: [] })
               }
               noPhoneNumberCount++
             }
