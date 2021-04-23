@@ -18,7 +18,7 @@ function expectFetchRequestIsCorrect (url) {
   })
 }
 
-const expectedOutputBindingName = 'awUsers'
+const outputBindingName = 'awUsers'
 const statusText = 'OK'
 const status = 200
 
@@ -67,9 +67,9 @@ describe('ExtractAWData function', () => {
 
     await extractAWData(context)
 
-    expect(context.bindings).toHaveProperty(expectedOutputBindingName)
-    expect(context.bindings[expectedOutputBindingName]).toHaveLength(numberOfDevices)
-    const device = context.bindings[expectedOutputBindingName][0]
+    expect(context.bindings).toHaveProperty(outputBindingName)
+    expect(context.bindings[outputBindingName]).toHaveLength(numberOfDevices)
+    const device = context.bindings[outputBindingName][0]
     expect(device.emailAddress).toEqual(Devices[0].UserEmailAddress)
     expect(device.phoneNumbers[0]).toEqual(Devices[0].PhoneNumber)
   })
@@ -83,12 +83,12 @@ describe('ExtractAWData function', () => {
 
     await extractAWData(context)
 
-    expect(context.bindings).toHaveProperty(expectedOutputBindingName)
-    expect(context.bindings[expectedOutputBindingName]).toHaveLength(2)
-    const user1 = context.bindings[expectedOutputBindingName][0]
+    expect(context.bindings).toHaveProperty(outputBindingName)
+    expect(context.bindings[outputBindingName]).toHaveLength(2)
+    const user1 = context.bindings[outputBindingName][0]
     expect(user1.emailAddress).toEqual(Devices[0].UserEmailAddress)
     expect(user1.phoneNumbers[0]).toEqual(Devices[0].PhoneNumber)
-    const user2 = context.bindings[expectedOutputBindingName][1]
+    const user2 = context.bindings[outputBindingName][1]
     expect(user2.emailAddress).toEqual(Devices[2].UserEmailAddress)
     expect(user2.phoneNumbers[0]).toEqual(undefined)
   })
@@ -103,13 +103,13 @@ describe('ExtractAWData function', () => {
 
     await extractAWData(context)
 
-    expect(context.bindings[expectedOutputBindingName]).toHaveLength(2)
-    const user1 = context.bindings[expectedOutputBindingName][0]
+    expect(context.bindings[outputBindingName]).toHaveLength(2)
+    const user1 = context.bindings[outputBindingName][0]
     expect(user1.emailAddress).toEqual(Devices[0].UserEmailAddress)
     expect(user1.phoneNumbers).toHaveLength(2)
     expect(user1.phoneNumbers[0]).toEqual(Devices[0].PhoneNumber)
     expect(user1.phoneNumbers[1]).toEqual(Devices[2].PhoneNumber)
-    const user2 = context.bindings[expectedOutputBindingName][1]
+    const user2 = context.bindings[outputBindingName][1]
     expect(user2.emailAddress).toEqual(Devices[1].UserEmailAddress)
     expect(user2.phoneNumbers).toHaveLength(1)
     expect(user2.phoneNumbers[0]).toEqual(Devices[1].PhoneNumber)
@@ -123,10 +123,10 @@ describe('ExtractAWData function', () => {
 
     await extractAWData(context)
 
-    expect(context.bindings[expectedOutputBindingName]).toHaveLength(2)
-    const user1 = context.bindings[expectedOutputBindingName][0]
+    expect(context.bindings[outputBindingName]).toHaveLength(2)
+    const user1 = context.bindings[outputBindingName][0]
     expect(user1.phoneNumbers[0]).toEqual(iPhones[0].PhoneNumber)
-    const user2 = context.bindings[expectedOutputBindingName][1]
+    const user2 = context.bindings[outputBindingName][1]
     expect(user2.phoneNumbers[0]).toEqual(iPhones[1].PhoneNumber)
   })
 
@@ -169,7 +169,7 @@ describe('ExtractAWData bindings', () => {
     expect(outputBindings).toHaveLength(1)
 
     const outputBinding = outputBindings[0]
-    expect(outputBinding.name).toEqual(expectedOutputBindingName)
+    expect(outputBinding.name).toEqual(outputBindingName)
     expect(outputBinding.type).toEqual('blob')
     expect(outputBinding.path).toEqual(`%${testEnvVars.AW_EXTRACT_CONTAINER}%/aw-users.json`)
   })
