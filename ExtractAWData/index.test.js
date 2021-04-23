@@ -165,18 +165,18 @@ describe('ExtractAWData function', () => {
 
 describe('ExtractAWData bindings', () => {
   test('output binding is correct', () => {
-    const outputBindings = functionDef.bindings.filter((binding) => binding.direction === 'out')
-    expect(outputBindings).toHaveLength(1)
+    const bindings = functionDef.bindings.filter((binding) => binding.direction === 'out')
+    expect(bindings).toHaveLength(1)
 
-    const outputBinding = outputBindings[0]
-    expect(outputBinding.name).toEqual(outputBindingName)
-    expect(outputBinding.type).toEqual('blob')
-    expect(outputBinding.path).toEqual(`%${testEnvVars.AW_EXTRACT_CONTAINER}%/aw-users.json`)
+    const binding = bindings[0]
+    expect(binding.name).toEqual(outputBindingName)
+    expect(binding.type).toEqual('blob')
+    expect(binding.path).toEqual(`%${testEnvVars.AW_EXTRACT_CONTAINER}%/aw-users.json`)
   })
 
   test('timer schedule is set correctly', () => {
-    const inputBindings = functionDef.bindings.filter((binding) => binding.direction === 'in')
-    expect(inputBindings).toHaveLength(1)
-    expect(inputBindings[0].schedule).toEqual('0 0 8 * * 5')
+    const bindings = functionDef.bindings.filter((binding) => binding.direction === 'in')
+    expect(bindings).toHaveLength(1)
+    expect(bindings[0].schedule).toEqual('0 0 8 * * 5')
   })
 })
