@@ -3,6 +3,7 @@ const extractAWData = require('./index')
 const functionDef = require('./function')
 
 const context = require('../test/defaultContext')
+const generateDevices = require('../test/generateDevices')
 const testEnvVars = require('../test/testEnvVars')
 
 jest.mock('node-fetch')
@@ -17,6 +18,10 @@ function expectFetchRequestIsCorrect (url) {
   })
 }
 
+const expectedOutputBindingName = 'awUsers'
+const statusText = 'OK'
+const status = 200
+
 async function mockFetchResolvedJsonValueOnce (val) {
   fetch.mockResolvedValueOnce({
     headers: { raw: () => { return {} } },
@@ -25,10 +30,6 @@ async function mockFetchResolvedJsonValueOnce (val) {
     statusText
   })
 }
-
-const expectedOutputBindingName = 'awUsers'
-const statusText = 'OK'
-const status = 200
 
 describe('ExtractAWData function', () => {
   const PageSize = 500
@@ -57,14 +58,6 @@ describe('ExtractAWData function', () => {
     expectFetchRequestIsCorrect(`https://${testEnvVars.AW_DOMAIN}/API/mdm/devices/search?pagesize=${PageSize}&page=0`)
     expectFetchRequestIsCorrect(`https://${testEnvVars.AW_DOMAIN}/API/mdm/devices/search?pagesize=${PageSize}&page=1`)
   })
-
-  function generateDevices (count) {
-    const devices = []
-    for (let i = 0; i < count; i++) {
-      devices.push({ UserEmailAddress: 'user.name@email.com', PhoneNumber: '07777000000' })
-    }
-    return devices
-  }
 
   test('user data is bound to correct output binding', async () => {
     const numberOfDevices = 1
