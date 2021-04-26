@@ -171,7 +171,7 @@ describe('ExtractAWData bindings', () => {
     const binding = bindings[0]
     expect(binding.name).toEqual(outputBindingName)
     expect(binding.type).toEqual('blob')
-    expect(binding.path).toEqual(`%${testEnvVars.AW_EXTRACT_CONTAINER}%/aw-users.json`)
+    expect(binding.path).toEqual(`%${testEnvVars.DATA_EXTRACT_CONTAINER}%/aw-users.json`)
   })
 
   test('timer schedule runs at 08:00 every Sunday', () => {
