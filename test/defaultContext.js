@@ -4,5 +4,6 @@ logMock.warn = jest.fn()
 
 module.exports = {
   bindings: {},
+  bindingData: {},
   log: logMock
 }
