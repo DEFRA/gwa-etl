@@ -1,6 +1,6 @@
 const fetch = require('node-fetch')
 const extractAWData = require('./index')
-const functionDef = require('./function')
+const { bindings: functionBindings } = require('./function')
 
 const context = require('../test/defaultContext')
 const { generateIPads, generateIPhones } = require('../test/generateDevices')
@@ -165,7 +165,7 @@ describe('ExtractAWData function', () => {
 
 describe('ExtractAWData bindings', () => {
   test('output binding is correct', () => {
-    const bindings = functionDef.bindings.filter((binding) => binding.direction === 'out')
+    const bindings = functionBindings.filter((binding) => binding.direction === 'out')
     expect(bindings).toHaveLength(1)
 
     const binding = bindings[0]
@@ -174,9 +174,9 @@ describe('ExtractAWData bindings', () => {
     expect(binding.path).toEqual(`%${testEnvVars.AW_EXTRACT_CONTAINER}%/aw-users.json`)
   })
 
-  test('timer schedule is set correctly', () => {
-    const bindings = functionDef.bindings.filter((binding) => binding.direction === 'in')
+  test('timer schedule runs at 08:00 every Sunday', () => {
+    const bindings = functionBindings.filter((binding) => binding.direction === 'in')
     expect(bindings).toHaveLength(1)
-    expect(bindings[0].schedule).toEqual('0 0 8 * * 5')
+    expect(bindings[0].schedule).toEqual('0 0 8 * * 0')
   })
 })
