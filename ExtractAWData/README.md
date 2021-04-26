@@ -5,7 +5,7 @@
 
 ## Detail
 
-The function triggers on a timer to make a request to the
+The function triggers on a [timer](./function.json) to make a request to the
 [AirWatch REST API](https://resources.workspaceone.com/view/zv5cgwjrcv972rd6fmml/en),
 specifically the `DevicesV2` (`/devices/search`) endpoint.
 
