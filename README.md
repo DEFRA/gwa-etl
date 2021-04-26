@@ -28,6 +28,8 @@ detail in its' own README:
 
 * [ExtractAWData](ExtractAWData/README.md)
 * [CombineUserData](CombineUserData/README.md)
+* [CombineDataSources](CombineDataSources/README.md)
+* [Import](Import/README.md)
 
 ## Development
 
