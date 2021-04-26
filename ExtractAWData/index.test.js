@@ -1,12 +1,13 @@
 const fetch = require('node-fetch')
-const extractAWData = require('./index')
+
+jest.mock('node-fetch')
+
+const extractAWData = require('.')
 const { bindings: functionBindings } = require('./function')
 
 const context = require('../test/defaultContext')
 const { generateIPads, generateIPhones } = require('../test/generateDevices')
 const testEnvVars = require('../test/testEnvVars')
-
-jest.mock('node-fetch')
 
 function expectFetchRequestIsCorrect (url) {
   expect(fetch).toHaveBeenCalledWith(url, {
