@@ -1,0 +1,18 @@
+{
+  "bindings": [
+    {
+      "name": "myBlob",
+      "type": "blobTrigger",
+      "direction": "in",
+      "path": "%DATA_EXTRACT_CONTAINER%/{triggerFilename}",
+      "connection": "AzureWebJobsStorage"
+    },
+    {
+      "name": "triggerFileContents",
+      "type": "blob",
+      "direction": "in",
+      "path": "%DATA_EXTRACT_CONTAINER%/{triggerFilename}",
+      "connection": "AzureWebJobsStorage"
+    }
+  ]
+}
