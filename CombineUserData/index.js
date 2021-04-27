@@ -33,7 +33,10 @@ module.exports = async function (context) {
     if (retrievedFileContents) {
       const combinedData = combineData(triggerFileContents, retrievedFileContents)
       context.bindings.internalUsers = combinedData
-      context.log('Data has been combined.')
+
+      context.log(`${triggerFileContents.length} items in ${triggerFilename}.`)
+      context.log(`${retrievedFileContents.length} items in ${retrieveFilename}.`)
+      context.log(`${combinedData.length} items in combined dataset.`)
     } else {
       context.log.warn(`'${retrieveFilename}' not found, no data will be combined.`)
     }
