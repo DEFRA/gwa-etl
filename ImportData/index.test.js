@@ -1,4 +1,4 @@
-const { allUsersFilename, internalUsersFilename } = require('../lib/config')
+const { allUsersFilename } = require('../lib/config')
 
 const importData = require('.')
 const { bindings: functionBindings } = require('./function')
@@ -7,12 +7,12 @@ const context = require('../test/defaultContext')
 const testEnvVars = require('../test/testEnvVars')
 
 const inputBindingName = 'myBlob'
-const inputBlobBindingName = 'internalUsersFileContents'
+const inputBlobBindingName = 'allUsers'
 const outputBindingName = 'users'
 
 describe('ImportData function', () => {
   test('incoming file contents are saved to output binding', async () => {
-    const inputFileContents = 'some file contents'
+    const inputFileContents = []
     context.bindings[inputBlobBindingName] = inputFileContents
 
     await importData(context)
@@ -43,7 +43,7 @@ describe('ImportData bindings', () => {
 
     const binding = bindings[0]
     expect(binding.name).toEqual(inputBindingName)
-    expect(binding.path).toEqual(`%${testEnvVars.DATA_SOURCES_CONTAINER}%/${internalUsersFilename}`)
+    expect(binding.path).toEqual(`%${testEnvVars.DATA_IMPORT_CONTAINER}%/${allUsersFilename}`)
   })
 
   test('blob binding is correct', () => {
@@ -52,16 +52,17 @@ describe('ImportData bindings', () => {
 
     const binding = bindings[0]
     expect(binding.name).toEqual(inputBlobBindingName)
-    expect(binding.path).toEqual(`%${testEnvVars.DATA_SOURCES_CONTAINER}%/${internalUsersFilename}`)
+    expect(binding.path).toEqual(`%${testEnvVars.DATA_IMPORT_CONTAINER}%/${allUsersFilename}`)
   })
 
-  test('output binding is correct', () => {
+  test('cosmos output binding is correct', () => {
     const bindings = functionBindings.filter((binding) => binding.direction === 'out')
     expect(bindings).toHaveLength(1)
 
     const binding = bindings[0]
     expect(binding.name).toEqual(outputBindingName)
-    expect(binding.type).toEqual('blob')
-    expect(binding.path).toEqual(`%${testEnvVars.DATA_IMPORT_CONTAINER}%/${allUsersFilename}`)
+    expect(binding.type).toEqual('cosmosDB')
+    expect(binding.databaseName).toEqual('gwa')
+    expect(binding.collectionName).toEqual(`%${testEnvVars.COSMOS_DB_USERS_CONTAINER}%`)
   })
 })

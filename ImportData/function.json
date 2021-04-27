@@ -4,22 +4,23 @@
       "name": "myBlob",
       "type": "blobTrigger",
       "direction": "in",
-      "path": "%DATA_EXTRACT_CONTAINER%/{triggerFilename}",
+      "path": "%DATA_IMPORT_CONTAINER%/all-users.json",
       "connection": "AzureWebJobsStorage"
     },
     {
-      "name": "triggerFileContents",
+      "name": "allUsers",
       "type": "blob",
       "direction": "in",
-      "path": "%DATA_EXTRACT_CONTAINER%/{triggerFilename}",
+      "path": "%DATA_IMPORT_CONTAINER%/all-users.json",
       "connection": "AzureWebJobsStorage"
     },
     {
-      "name": "internalUsers",
-      "type": "blob",
+      "name": "users",
+      "type": "cosmosDB",
       "direction": "out",
-      "path": "%DATA_SOURCES_CONTAINER%/internal-users.json",
-      "connection": "AzureWebJobsStorage"
+      "databaseName": "gwa",
+      "collectionName": "%COSMOS_DB_USERS_CONTAINER%",
+      "connectionStringSetting": "COSMOS_DB"
     }
   ]
 }
