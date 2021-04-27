@@ -1,6 +1,6 @@
 {
   "threshold": 0,
   "reporters": ["consoleFull"],
-  "ignore": ["**/*.test.js", "**/__snapshots__/**"],
+  "ignore": ["**/.github/**", "**/*.test.js", "**/__snapshots__/**"],
   "absolute": true
 }
