@@ -13,6 +13,13 @@
       "direction": "in",
       "path": "%DATA_EXTRACT_CONTAINER%/{triggerFilename}",
       "connection": "AzureWebJobsStorage"
+    },
+    {
+      "name": "internalUsers",
+      "type": "blob",
+      "direction": "out",
+      "path": "%DATA_SOURCES_CONTAINER%/internal-users.json",
+      "connection": "AzureWebJobsStorage"
     }
   ]
 }
