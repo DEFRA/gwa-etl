@@ -9,6 +9,7 @@
     "COSMOS_DB": "",
     "COSMOS_DB_USERS_CONTAINER": "users-local",
     "DATA_EXTRACT_CONTAINER": "data-extract",
+    "DATA_IMPORT_CONTAINER": "data-import",
     "DATA_SOURCES_CONTAINER": "data-sources"
   }
 }

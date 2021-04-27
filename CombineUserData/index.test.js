@@ -6,7 +6,7 @@ jest.mock('@azure/storage-blob')
 jest.mock('../lib/getBlobContents')
 jest.mock('../lib/combineData')
 
-const { aadFilename, awFilename } = require('../lib/config')
+const { aadFilename, awFilename, internalUsersFilename } = require('../lib/config')
 
 const combineUserData = require('.')
 const { bindings: functionBindings } = require('./function')
@@ -98,21 +98,13 @@ describe('CombineUserData bindings', () => {
     expect(inputBindings).toHaveLength(2)
   })
 
-  test('input bindings', () => {
-    expect(inputBindings).toHaveLength(2)
-
-    const binding = inputBindings[0]
-    expect(binding.name).toEqual(inputBindingName)
-    expect(binding.type).toEqual('blobTrigger')
-    expect(binding.path).toEqual(`%${testEnvVars.DATA_EXTRACT_CONTAINER}%/{${triggerFilename}}`)
-  })
   test('blobTrigger input binding is correct', () => {
     const bindings = inputBindings.filter(b => b.type === 'blobTrigger')
     expect(bindings).toHaveLength(1)
 
     const binding = bindings[0]
     expect(binding.name).toEqual(inputBindingName)
-    expect(binding.path).toEqual(`%${testEnvVars.DATA_EXTRACT_CONTAINER}%/{triggerFilename}`)
+    expect(binding.path).toEqual(`%${testEnvVars.DATA_EXTRACT_CONTAINER}%/{${triggerFilename}}`)
   })
 
   test('blob binding is correct', () => {
@@ -121,7 +113,7 @@ describe('CombineUserData bindings', () => {
 
     const binding = bindings[0]
     expect(binding.name).toEqual(inputBlobBindingName)
-    expect(binding.path).toEqual(`%${testEnvVars.DATA_EXTRACT_CONTAINER}%/{triggerFilename}`)
+    expect(binding.path).toEqual(`%${testEnvVars.DATA_EXTRACT_CONTAINER}%/{${triggerFilename}}`)
   })
 
   test('output binding is correct', () => {
@@ -131,6 +123,6 @@ describe('CombineUserData bindings', () => {
     const binding = bindings[0]
     expect(binding.name).toEqual(outputBindingName)
     expect(binding.type).toEqual('blob')
-    expect(binding.path).toEqual(`%${testEnvVars.DATA_SOURCES_CONTAINER}%/internal-users.json`)
+    expect(binding.path).toEqual(`%${testEnvVars.DATA_SOURCES_CONTAINER}%/${internalUsersFilename}`)
   })
 })

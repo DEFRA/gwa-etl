@@ -16,4 +16,4 @@ and AAD data into blob storage that will trigger the execution of
 
 The reason the function exists is to make it easier in future to add the code
 to combine all of the files in storage before exporting the data into a file
-that will be imported.
+that will eventually be imported into the database.
