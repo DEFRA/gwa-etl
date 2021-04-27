@@ -12,7 +12,7 @@ from [CombineUserData](../CombineUserData) and other sources (TBD).
 
 Currently this function just copies the single file from the combining of AW
 and AAD data into blob storage that will trigger the execution of
-[Import](../Import).
+[ImportData](../ImportData).
 
 The reason the function exists is to make it easier in future to add the code
 to combine all of the files in storage before exporting the data into a file

@@ -1,4 +1,4 @@
-# Import - JavaScript
+# ImportData - JavaScript
 
 > Triggers on files in blob storage and imports them into the database.
 
