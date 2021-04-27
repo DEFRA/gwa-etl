@@ -1,20 +1,18 @@
 const { ContainerClient } = require('@azure/storage-blob')
 
+const combineData = require('../lib/combineData')
 const getBlobContents = require('../lib/getBlobContents')
+const { aadFilename, awFilename } = require('../lib/config')
 
 const connectionString = process.env.AzureWebJobsStorage
 const dataExtractContainer = process.env.DATA_EXTRACT_CONTAINER
 
 const containerClient = new ContainerClient(connectionString, dataExtractContainer)
 
-const awFilename = 'aw-users.json'
-const aadFilename = 'aad-users.json'
-
 module.exports = async function (context) {
   try {
     const { triggerFilename } = context.bindingData
     const { triggerFileContents } = context.bindings
-    context.log('triggerFileContents:', triggerFileContents) // TODO: delete
 
     let retrieveFilename
     switch (triggerFilename) {
@@ -33,9 +31,9 @@ module.exports = async function (context) {
     const retrievedFileContents = await getBlobContents(containerClient, retrieveFilename)
 
     if (retrievedFileContents) {
-      // TODO: check blobContents contains something
-      // TODO: combine the two datasets
-      context.log(`Blob contents for '${retrieveFilename}': ${retrievedFileContents}.`)
+      const combinedData = combineData(triggerFileContents, retrievedFileContents)
+      context.bindings.internalUsers = combinedData
+      context.log('Data has been combined.')
     } else {
       context.log.warn(`'${retrieveFilename}' not found, no data will be combined.`)
     }
