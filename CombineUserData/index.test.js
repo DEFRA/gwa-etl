@@ -14,7 +14,7 @@ const { bindings: functionBindings } = require('./function')
 const context = require('../test/defaultContext')
 const testEnvVars = require('../test/testEnvVars')
 
-const triggerFilename = 'triggerFilename'
+const blobBindingName = 'triggerFilename'
 const inputBindingName = 'myBlob'
 const inputBlobBindingName = 'triggerFileContents'
 const triggerFileContents = []
@@ -22,7 +22,7 @@ const outputBindingName = 'internalUsers'
 
 describe('CombineUserData function', () => {
   beforeAll(() => {
-    context.bindingData[triggerFilename] = ''
+    context.bindingData[blobBindingName] = ''
     context.bindings[inputBlobBindingName] = triggerFileContents
     getBlobContents.mockClear()
   })
@@ -36,9 +36,20 @@ describe('CombineUserData function', () => {
     expect(ContainerClient).toHaveBeenCalledWith(testEnvVars.AzureWebJobsStorage, testEnvVars.DATA_EXTRACT_CONTAINER)
   })
 
+  test('triggering on neither aw of aad file logs a warning', async () => {
+    const triggerFilename = 'neither-aw-or-aad.json'
+    context.bindingData[blobBindingName] = triggerFilename
+
+    await combineUserData(context)
+
+    expect(getBlobContents).toHaveBeenCalledTimes(0)
+    expect(context.log.warn).toHaveBeenCalledTimes(1)
+    expect(context.log.warn).toHaveBeenCalledWith(`Unrecogonised file: '${triggerFilename}', no processing will take place.`)
+  })
+
   test('triggering for aw file will retreive aad file', async () => {
     getBlobContents.mockImplementation(() => { return null })
-    context.bindingData[triggerFilename] = awFilename
+    context.bindingData[blobBindingName] = awFilename
 
     await combineUserData(context)
 
@@ -48,7 +59,7 @@ describe('CombineUserData function', () => {
 
   test('triggering for aad file will retreive aw file', async () => {
     getBlobContents.mockImplementation(() => { return null })
-    context.bindingData[triggerFilename] = aadFilename
+    context.bindingData[blobBindingName] = aadFilename
 
     await combineUserData(context)
 
@@ -62,7 +73,7 @@ describe('CombineUserData function', () => {
     const retrievedFileContents = []
     combineData.mockImplementation(() => { return combinedData })
     getBlobContents.mockImplementation(() => { return retrievedFileContents })
-    context.bindingData[triggerFilename] = aadFilename
+    context.bindingData[blobBindingName] = aadFilename
 
     await combineUserData(context)
 
@@ -74,7 +85,7 @@ describe('CombineUserData function', () => {
 
   test('a file returning no data logs a warning', async () => {
     getBlobContents.mockImplementation(() => { return null })
-    context.bindingData[triggerFilename] = aadFilename
+    context.bindingData[blobBindingName] = aadFilename
 
     await combineUserData(context)
 
@@ -104,7 +115,7 @@ describe('CombineUserData bindings', () => {
 
     const binding = bindings[0]
     expect(binding.name).toEqual(inputBindingName)
-    expect(binding.path).toEqual(`%${testEnvVars.DATA_EXTRACT_CONTAINER}%/{${triggerFilename}}`)
+    expect(binding.path).toEqual(`%${testEnvVars.DATA_EXTRACT_CONTAINER}%/{${blobBindingName}}`)
   })
 
   test('blob binding is correct', () => {
@@ -113,7 +124,7 @@ describe('CombineUserData bindings', () => {
 
     const binding = bindings[0]
     expect(binding.name).toEqual(inputBlobBindingName)
-    expect(binding.path).toEqual(`%${testEnvVars.DATA_EXTRACT_CONTAINER}%/{${triggerFilename}}`)
+    expect(binding.path).toEqual(`%${testEnvVars.DATA_EXTRACT_CONTAINER}%/{${blobBindingName}}`)
   })
 
   test('output binding is correct', () => {
