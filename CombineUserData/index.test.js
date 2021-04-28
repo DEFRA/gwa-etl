@@ -1,14 +1,9 @@
-const { ContainerClient } = require('@azure/storage-blob')
-const getBlobContents = require('../lib/getBlobContents')
-const combineData = require('../lib/combineData')
-
 jest.mock('@azure/storage-blob')
 jest.mock('../lib/getBlobContents')
 jest.mock('../lib/combineData')
 
 const { aadFilename, awFilename, internalUsersFilename } = require('../lib/config')
 
-const combineUserData = require('.')
 const { bindings: functionBindings } = require('./function')
 
 const context = require('../test/defaultContext')
@@ -21,17 +16,26 @@ const triggerFileContents = []
 const outputBindingName = 'internalUsers'
 
 describe('CombineUserData function', () => {
-  beforeAll(() => {
-    context.bindingData[blobBindingName] = ''
-    context.bindings[inputBlobBindingName] = triggerFileContents
-    getBlobContents.mockClear()
-  })
+  let combineUserData
+  let combineData
+  let ContainerClient
+  let getBlobContents
 
   beforeEach(() => {
-    context.log.warn.mockClear()
+    jest.clearAllMocks()
+    jest.resetModules()
+    combineUserData = require('.')
+    ContainerClient = require('@azure/storage-blob').ContainerClient
+    getBlobContents = require('../lib/getBlobContents')
+    combineData = require('../lib/combineData')
+
+    context.bindingData[blobBindingName] = ''
+    context.bindings[inputBlobBindingName] = triggerFileContents
   })
 
   test('clients are created when module is imported, with correct env vars', async () => {
+    await combineUserData(context)
+
     expect(ContainerClient).toHaveBeenCalledTimes(1)
     expect(ContainerClient).toHaveBeenCalledWith(testEnvVars.AzureWebJobsStorage, testEnvVars.DATA_EXTRACT_CONTAINER)
   })
@@ -63,8 +67,7 @@ describe('CombineUserData function', () => {
 
     await combineUserData(context)
 
-    // TODO: number of calls should be 1 not 2!
-    expect(getBlobContents).toHaveBeenCalledTimes(2)
+    expect(getBlobContents).toHaveBeenCalledTimes(1)
     expect(getBlobContents).toHaveBeenCalledWith(ContainerClient.mock.instances[0], awFilename)
   })
 
