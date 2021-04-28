@@ -1,21 +1,21 @@
-jest.mock('@azure/storage-blob')
-jest.mock('../lib/getBlobContents')
-jest.mock('../lib/combineData')
-
 const { aadFilename, awFilename, internalUsersFilename } = require('../lib/config')
 
-const { bindings: functionBindings } = require('./function')
-
-const context = require('../test/defaultContext')
 const testEnvVars = require('../test/testEnvVars')
 
 const blobBindingName = 'triggerFilename'
 const inputBindingName = 'myBlob'
 const inputBlobBindingName = 'triggerFileContents'
-const triggerFileContents = []
 const outputBindingName = 'internalUsers'
 
 describe('CombineUserData function', () => {
+  jest.mock('@azure/storage-blob')
+  jest.mock('../lib/getBlobContents')
+  jest.mock('../lib/combineData')
+
+  const context = require('../test/defaultContext')
+
+  const triggerFileContents = []
+
   let combineUserData
   let combineData
   let ContainerClient
@@ -106,6 +106,8 @@ describe('CombineUserData function', () => {
 })
 
 describe('CombineUserData bindings', () => {
+  const { bindings: functionBindings } = require('./function')
+
   const inputBindings = functionBindings.filter((binding) => binding.direction === 'in')
 
   test('two input bindings exist', () => {
