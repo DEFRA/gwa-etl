@@ -1,16 +1,12 @@
-const { allUsersFilename } = require('../lib/config')
-
-const importData = require('.')
-const { bindings: functionBindings } = require('./function')
-
-const context = require('../test/defaultContext')
-const testEnvVars = require('../test/testEnvVars')
-
 const inputBindingName = 'myBlob'
 const inputBlobBindingName = 'allUsers'
 const outputBindingName = 'users'
 
 describe('ImportData function', () => {
+  const importData = require('.')
+
+  const context = require('../test/defaultContext')
+
   test('incoming file contents are saved to output binding', async () => {
     const inputFileContents = []
     context.bindings[inputBlobBindingName] = inputFileContents
@@ -31,6 +27,11 @@ describe('ImportData function', () => {
 })
 
 describe('ImportData bindings', () => {
+  const { bindings: functionBindings } = require('./function')
+
+  const testEnvVars = require('../test/testEnvVars')
+  const { allUsersFilename } = require('../lib/config')
+
   const inputBindings = functionBindings.filter((binding) => binding.direction === 'in')
 
   test('two input bindings exist', () => {

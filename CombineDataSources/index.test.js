@@ -1,16 +1,11 @@
-const { allUsersFilename, internalUsersFilename } = require('../lib/config')
-
-const combineDataSources = require('.')
-const { bindings: functionBindings } = require('./function')
-
-const context = require('../test/defaultContext')
-const testEnvVars = require('../test/testEnvVars')
-
 const inputBindingName = 'myBlob'
 const inputBlobBindingName = 'internalUsersFileContents'
 const outputBindingName = 'users'
 
 describe('CombineDataSources function', () => {
+  const combineDataSources = require('.')
+  const context = require('../test/defaultContext')
+
   test('incoming file contents are saved to output binding', async () => {
     const inputFileContents = 'some file contents'
     context.bindings[inputBlobBindingName] = inputFileContents
@@ -31,6 +26,10 @@ describe('CombineDataSources function', () => {
 })
 
 describe('CombineDataSources bindings', () => {
+  const { bindings: functionBindings } = require('./function')
+  const { allUsersFilename, internalUsersFilename } = require('../lib/config')
+  const testEnvVars = require('../test/testEnvVars')
+
   const inputBindings = functionBindings.filter((binding) => binding.direction === 'in')
 
   test('two input bindings exist', () => {

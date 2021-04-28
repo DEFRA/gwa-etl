@@ -1,41 +1,40 @@
 const fetch = require('node-fetch')
-
 jest.mock('node-fetch')
 
-const extractAWData = require('.')
-const { bindings: functionBindings } = require('./function')
-
-const context = require('../test/defaultContext')
-const { generateIPads, generateIPhones } = require('../test/generateDevices')
 const testEnvVars = require('../test/testEnvVars')
 
-function expectFetchRequestIsCorrect (url) {
-  expect(fetch).toHaveBeenCalledWith(url, {
-    headers: {
-      Authorization: testEnvVars.AW_AUTH_HEADER,
-      'aw-tenant-code': testEnvVars.AW_TENANT_CODE,
-      'Content-Type': 'application/json'
-    }
-  })
-}
-
 const outputBindingName = 'awUsers'
-const statusText = 'OK'
-const status = 200
-
-async function mockFetchResolvedJsonValueOnce (val) {
-  fetch.mockResolvedValueOnce({
-    headers: { raw: () => { return {} } },
-    json: async () => { return val },
-    status,
-    statusText
-  })
-}
 
 describe('ExtractAWData function', () => {
-  const PageSize = 500
+  const extractAWData = require('.')
 
-  afterEach(() => { jest.clearAllMocks() })
+  const context = require('../test/defaultContext')
+  const { generateIPads, generateIPhones } = require('../test/generateDevices')
+
+  function expectFetchRequestIsCorrect (url) {
+    expect(fetch).toHaveBeenCalledWith(url, {
+      headers: {
+        Authorization: testEnvVars.AW_AUTH_HEADER,
+        'aw-tenant-code': testEnvVars.AW_TENANT_CODE,
+        'Content-Type': 'application/json'
+      }
+    })
+  }
+
+  const PageSize = 500
+  const statusText = 'OK'
+  const status = 200
+
+  async function mockFetchResolvedJsonValueOnce (val) {
+    fetch.mockResolvedValueOnce({
+      headers: { raw: () => { return {} } },
+      json: async () => { return val },
+      status,
+      statusText
+    })
+  }
+
+  beforeEach(() => { jest.clearAllMocks() })
 
   test('request to AW API is made correctly', async () => {
     const expectedResponse = { Devices: [], Page: 0, PageSize, Total: 0 }
@@ -165,6 +164,8 @@ describe('ExtractAWData function', () => {
 })
 
 describe('ExtractAWData bindings', () => {
+  const { bindings: functionBindings } = require('./function')
+
   test('output binding is correct', () => {
     const bindings = functionBindings.filter((binding) => binding.direction === 'out')
     expect(bindings).toHaveLength(1)
