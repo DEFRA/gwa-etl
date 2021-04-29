@@ -2,9 +2,8 @@ const { aadFilename, awFilename, internalUsersFilename } = require('../lib/confi
 
 const testEnvVars = require('../test/testEnvVars')
 
-const blobBindingName = 'triggerFilename'
-const inputBindingName = 'myBlob'
-const inputBlobBindingName = 'triggerFileContents'
+const blobNameBinding = 'triggerFilename'
+const inputBindingName = 'blobContents'
 const outputBindingName = 'internalUsers'
 
 describe('CombineUserData function', () => {
@@ -14,7 +13,8 @@ describe('CombineUserData function', () => {
 
   const context = require('../test/defaultContext')
 
-  const triggerFileContents = []
+  const userData = [{ emailAddress: 'a@a.com' }]
+  const triggerFileContents = Buffer.from(JSON.stringify(userData))
 
   let combineUserData
   let combineData
@@ -29,8 +29,8 @@ describe('CombineUserData function', () => {
     getBlobContents = require('../lib/getBlobContents')
     combineData = require('../lib/combineData')
 
-    context.bindingData[blobBindingName] = ''
-    context.bindings[inputBlobBindingName] = triggerFileContents
+    context.bindingData[blobNameBinding] = ''
+    context.bindings[inputBindingName] = triggerFileContents
   })
 
   test('clients are created when module is imported, with correct env vars', async () => {
@@ -42,7 +42,7 @@ describe('CombineUserData function', () => {
 
   test('triggering on neither aw of aad file logs a warning', async () => {
     const triggerFilename = 'neither-aw-or-aad.json'
-    context.bindingData[blobBindingName] = triggerFilename
+    context.bindingData[blobNameBinding] = triggerFilename
 
     await combineUserData(context)
 
@@ -53,7 +53,7 @@ describe('CombineUserData function', () => {
 
   test('triggering for aw file will retreive aad file', async () => {
     getBlobContents.mockImplementation(() => { return null })
-    context.bindingData[blobBindingName] = awFilename
+    context.bindingData[blobNameBinding] = awFilename
 
     await combineUserData(context)
 
@@ -63,7 +63,7 @@ describe('CombineUserData function', () => {
 
   test('triggering for aad file will retreive aw file', async () => {
     getBlobContents.mockImplementation(() => { return null })
-    context.bindingData[blobBindingName] = aadFilename
+    context.bindingData[blobNameBinding] = aadFilename
 
     await combineUserData(context)
 
@@ -76,19 +76,19 @@ describe('CombineUserData function', () => {
     const retrievedFileContents = []
     combineData.mockImplementation(() => { return combinedData })
     getBlobContents.mockImplementation(() => { return retrievedFileContents })
-    context.bindingData[blobBindingName] = aadFilename
+    context.bindingData[blobNameBinding] = aadFilename
 
     await combineUserData(context)
 
     expect(context.bindings).toHaveProperty(outputBindingName)
     expect(context.bindings[outputBindingName]).toEqual(combinedData)
     expect(combineData).toHaveBeenCalledTimes(1)
-    expect(combineData).toHaveBeenCalledWith(triggerFileContents, retrievedFileContents)
+    expect(combineData).toHaveBeenCalledWith(userData, retrievedFileContents)
   })
 
   test('a file returning no data logs a warning', async () => {
     getBlobContents.mockImplementation(() => { return null })
-    context.bindingData[blobBindingName] = aadFilename
+    context.bindingData[blobNameBinding] = aadFilename
 
     await combineUserData(context)
 
@@ -108,28 +108,14 @@ describe('CombineUserData function', () => {
 describe('CombineUserData bindings', () => {
   const { bindings: functionBindings } = require('./function')
 
-  const inputBindings = functionBindings.filter((binding) => binding.direction === 'in')
-
-  test('two input bindings exist', () => {
-    expect(inputBindings).toHaveLength(2)
-  })
-
   test('blobTrigger input binding is correct', () => {
-    const bindings = inputBindings.filter(b => b.type === 'blobTrigger')
+    const bindings = functionBindings.filter((binding) => binding.direction === 'in')
     expect(bindings).toHaveLength(1)
 
     const binding = bindings[0]
     expect(binding.name).toEqual(inputBindingName)
-    expect(binding.path).toEqual(`%${testEnvVars.DATA_EXTRACT_CONTAINER}%/{${blobBindingName}}`)
-  })
-
-  test('blob binding is correct', () => {
-    const bindings = inputBindings.filter(b => b.type === 'blob')
-    expect(bindings).toHaveLength(1)
-
-    const binding = bindings[0]
-    expect(binding.name).toEqual(inputBlobBindingName)
-    expect(binding.path).toEqual(`%${testEnvVars.DATA_EXTRACT_CONTAINER}%/{${blobBindingName}}`)
+    expect(binding.type).toEqual('blobTrigger')
+    expect(binding.path).toEqual(`%${testEnvVars.DATA_EXTRACT_CONTAINER}%/{${blobNameBinding}}`)
   })
 
   test('output binding is correct', () => {

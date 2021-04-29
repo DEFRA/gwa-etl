@@ -1,5 +1,4 @@
-const inputBindingName = 'myBlob'
-const inputBlobBindingName = 'allUsers'
+const inputBindingName = 'blobContents'
 const outputBindingName = 'users'
 
 describe('ImportData function', () => {
@@ -8,13 +7,13 @@ describe('ImportData function', () => {
   const context = require('../test/defaultContext')
 
   test('incoming file contents are saved to output binding', async () => {
-    const inputFileContents = []
-    context.bindings[inputBlobBindingName] = inputFileContents
+    const userData = [{ emailAddress: 'a@a.com' }]
+    context.bindings[inputBindingName] = Buffer.from(JSON.stringify(userData))
 
     await importData(context)
 
     expect(context.bindings).toHaveProperty(outputBindingName)
-    expect(context.bindings[outputBindingName]).toEqual(inputFileContents)
+    expect(context.bindings[outputBindingName]).toEqual(userData)
   })
 
   test('an error is thrown (and logged) when an error occurs', async () => {
@@ -32,27 +31,14 @@ describe('ImportData bindings', () => {
   const testEnvVars = require('../test/testEnvVars')
   const { allUsersFilename } = require('../lib/config')
 
-  const inputBindings = functionBindings.filter((binding) => binding.direction === 'in')
-
-  test('two input bindings exist', () => {
-    expect(inputBindings).toHaveLength(2)
-  })
-
   test('blobTrigger input binding is correct', () => {
-    const bindings = inputBindings.filter(b => b.type === 'blobTrigger')
+    const bindings = functionBindings.filter((binding) => binding.direction === 'in')
+
     expect(bindings).toHaveLength(1)
 
     const binding = bindings[0]
     expect(binding.name).toEqual(inputBindingName)
-    expect(binding.path).toEqual(`%${testEnvVars.DATA_IMPORT_CONTAINER}%/${allUsersFilename}`)
-  })
-
-  test('blob binding is correct', () => {
-    const bindings = inputBindings.filter(b => b.type === 'blob')
-    expect(bindings).toHaveLength(1)
-
-    const binding = bindings[0]
-    expect(binding.name).toEqual(inputBlobBindingName)
+    expect(binding.type).toEqual('blobTrigger')
     expect(binding.path).toEqual(`%${testEnvVars.DATA_IMPORT_CONTAINER}%/${allUsersFilename}`)
   })
 

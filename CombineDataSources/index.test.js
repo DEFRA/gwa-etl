@@ -1,5 +1,4 @@
-const inputBindingName = 'myBlob'
-const inputBlobBindingName = 'internalUsersFileContents'
+const inputBlobBindingName = 'blobContents'
 const outputBindingName = 'users'
 
 describe('CombineDataSources function', () => {
@@ -7,8 +6,8 @@ describe('CombineDataSources function', () => {
   const context = require('../test/defaultContext')
 
   test('incoming file contents are saved to output binding', async () => {
-    const inputFileContents = 'some file contents'
-    context.bindings[inputBlobBindingName] = inputFileContents
+    const inputFileContents = [{ emailAddress: 'a@a.com' }]
+    context.bindings[inputBlobBindingName] = Buffer.from(JSON.stringify(inputFileContents))
 
     await combineDataSources(context)
 
@@ -30,27 +29,13 @@ describe('CombineDataSources bindings', () => {
   const { allUsersFilename, internalUsersFilename } = require('../lib/config')
   const testEnvVars = require('../test/testEnvVars')
 
-  const inputBindings = functionBindings.filter((binding) => binding.direction === 'in')
-
-  test('two input bindings exist', () => {
-    expect(inputBindings).toHaveLength(2)
-  })
-
   test('blobTrigger input binding is correct', () => {
-    const bindings = inputBindings.filter(b => b.type === 'blobTrigger')
-    expect(bindings).toHaveLength(1)
-
-    const binding = bindings[0]
-    expect(binding.name).toEqual(inputBindingName)
-    expect(binding.path).toEqual(`%${testEnvVars.DATA_SOURCES_CONTAINER}%/${internalUsersFilename}`)
-  })
-
-  test('blob binding is correct', () => {
-    const bindings = inputBindings.filter(b => b.type === 'blob')
+    const bindings = functionBindings.filter((binding) => binding.direction === 'in')
     expect(bindings).toHaveLength(1)
 
     const binding = bindings[0]
     expect(binding.name).toEqual(inputBlobBindingName)
+    expect(binding.type).toEqual('blobTrigger')
     expect(binding.path).toEqual(`%${testEnvVars.DATA_SOURCES_CONTAINER}%/${internalUsersFilename}`)
   })
 
