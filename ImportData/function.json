@@ -1,15 +1,8 @@
 {
   "bindings": [
     {
-      "name": "myBlob",
+      "name": "blobContents",
       "type": "blobTrigger",
-      "direction": "in",
-      "path": "%DATA_IMPORT_CONTAINER%/all-users.json",
-      "connection": "AzureWebJobsStorage"
-    },
-    {
-      "name": "allUsers",
-      "type": "blob",
       "direction": "in",
       "path": "%DATA_IMPORT_CONTAINER%/all-users.json",
       "connection": "AzureWebJobsStorage"

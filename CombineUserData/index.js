@@ -12,7 +12,7 @@ const containerClient = new ContainerClient(connectionString, dataExtractContain
 module.exports = async function (context) {
   try {
     const { triggerFilename } = context.bindingData
-    const { triggerFileContents } = context.bindings
+    const { blobContents } = context.bindings
 
     let retrieveFilename
     switch (triggerFilename) {
@@ -31,6 +31,7 @@ module.exports = async function (context) {
     const retrievedFileContents = await getBlobContents(containerClient, retrieveFilename)
 
     if (retrievedFileContents) {
+      const triggerFileContents = JSON.parse(blobContents)
       const combinedData = combineData(triggerFileContents, retrievedFileContents)
       context.bindings.internalUsers = combinedData
 
