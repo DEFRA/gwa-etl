@@ -10,13 +10,18 @@ const usersContainer = db.container(usersContainerName)
 
 module.exports = async function (context) {
   try {
+    const { blobContents } = context.bindings
+    const usersToImport = JSON.parse(blobContents)
+
+    if (!usersToImport.length) {
+      context.log.warn('No users to import, returning early.')
+      return
+    }
+    context.log(`Users to import: ${usersToImport.length}.`)
+
     const queryResponse = await usersContainer.items.query('SELECT c.id FROM c').fetchAll()
     const existingUserIds = new Set(queryResponse.resources.map(r => r.id))
     context.log(`Users already existing: ${existingUserIds.size}.`)
-
-    const { blobContents } = context.bindings
-    const usersToImport = JSON.parse(blobContents)
-    context.log(`Users to import: ${usersToImport.length}.`)
 
     const usersCreated = []
     const usersUpdated = []
@@ -52,7 +57,7 @@ module.exports = async function (context) {
       await usersContainer.item(emailAddress, emailAddress).replace(resource)
     }
 
-    context.log(`Users created: ${usersCreated.length}. Users updated: ${usersUpdated.length}. Users inactive: ${usersInactive.length}.`)
+    context.log(`${usersCreated.length} users created: ${usersCreated}.\n${usersUpdated.length} users updated: ${usersUpdated}.\n${usersInactive.length} users inactive: ${usersInactive}.`)
     // TODO: Consider using bindings for new users.
     // context.bindings.users = usersToImport
   } catch (e) {
