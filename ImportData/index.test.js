@@ -73,7 +73,8 @@ describe('ImportData bindings', () => {
     expect(binding.path).toEqual(`%${testEnvVars.DATA_IMPORT_CONTAINER}%/${allUsersFilename}`)
   })
 
-  test('cosmos output binding is correct', () => {
+  // TODO: remove once tested with direct access to Cosmos
+  test.skip('cosmos output binding is correct', () => {
     const bindings = functionBindings.filter((binding) => binding.direction === 'out')
     expect(bindings).toHaveLength(1)
 
@@ -82,5 +83,6 @@ describe('ImportData bindings', () => {
     expect(binding.type).toEqual('cosmosDB')
     expect(binding.databaseName).toEqual('gwa')
     expect(binding.collectionName).toEqual(`%${testEnvVars.COSMOS_DB_USERS_CONTAINER}%`)
+    expect(binding.connectionStringSetting).toEqual(`${testEnvVars.COSMOS_DB_CONNECTION_STRING}`)
   })
 })
