@@ -7,6 +7,7 @@
     "Steve Hunt <steven.hunt@defra.gov.uk>"
   ],
   "dependencies": {
+    "@azure/cosmos": "^3.11.0",
     "@azure/storage-blob": "^12.5.0",
     "node-fetch": "^2.6.1"
   },
