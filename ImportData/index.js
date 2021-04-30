@@ -1,10 +1,13 @@
 module.exports = async function (context) {
   try {
-    // Copy file contents
     const { blobContents } = context.bindings
     const users = JSON.parse(blobContents)
 
-    // TODO: set email to be id
+    users.forEach(user => {
+      user.id = user.emailAddress
+      delete user.emailAddress
+    })
+
     context.bindings.users = users
   } catch (e) {
     context.log.error(e)

@@ -6,14 +6,20 @@ describe('ImportData function', () => {
 
   const context = require('../test/defaultContext')
 
-  test('incoming file contents are saved to output binding', async () => {
-    const userData = [{ emailAddress: 'a@a.com' }]
+  test('incoming file contents are saved to output binding with email as id', async () => {
+    const userData = [{ emailAddress: 'a@a.com', phoneNumbers: ['07000111222'] }]
     context.bindings[inputBindingName] = Buffer.from(JSON.stringify(userData))
 
     await importData(context)
 
     expect(context.bindings).toHaveProperty(outputBindingName)
-    expect(context.bindings[outputBindingName]).toEqual(userData)
+    expect(context.bindings[outputBindingName]).toHaveLength(1)
+    const outputUser = context.bindings[outputBindingName][0]
+    expect(outputUser).toMatchObject({
+      id: userData[0].emailAddress,
+      phoneNumbers: userData[0].phoneNumbers
+    })
+    expect(outputUser).not.toMatchObject({ emailAddress: userData[0].emailAddress })
   })
 
   test('an error is thrown (and logged) when an error occurs', async () => {
