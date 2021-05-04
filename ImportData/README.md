@@ -17,7 +17,7 @@ The data being imported is merged with the existing data, giving precedence to
 the new data. Therefore, any additional data associated to the user e.g.
 personal phone numbers, will be maintained during the import process.
 
-### Creation of database and container
+### Creation of database and container
 
 The database and container must for the function execution to be successful.
 The function doesn't attempt to create the database or container as they are

@@ -5,18 +5,8 @@ const outputBindingName = 'users'
 
 describe('ImportData function', () => {
   const context = require('../test/defaultContext')
-  const dateNow = Date.now()
-  Date.now = jest.fn(() => dateNow)
-
-  function expectOutboundUser (input, output, importDate) {
-    expect(output).toMatchObject({
-      active: true,
-      id: input.emailAddress,
-      importDate,
-      phoneNumbers: input.phoneNumbers
-    })
-    expect(output).not.toMatchObject({ emailAddress: input.emailAddress })
-  }
+  const importDate = Date.now()
+  Date.now = jest.fn(() => importDate)
 
   let importData
   let CosmosClient
@@ -27,6 +17,10 @@ describe('ImportData function', () => {
   let queryMock
   let readMock
   let replaceMock
+
+  function bindUsersForImport (users) {
+    context.bindings[inputBindingName] = Buffer.from(JSON.stringify(users))
+  }
 
   beforeEach(() => {
     jest.clearAllMocks()
@@ -69,7 +63,7 @@ describe('ImportData function', () => {
 
   test('no users to import results in no db querying', async () => {
     const usersToImport = []
-    context.bindings[inputBindingName] = JSON.stringify(usersToImport)
+    bindUsersForImport(usersToImport)
 
     await importData(context)
 
@@ -82,7 +76,7 @@ describe('ImportData function', () => {
     fetchAllMock.mockResolvedValueOnce({ resources: existingUsers })
     readMock.mockResolvedValueOnce({ resource: existingUsers[0] })
     const usersToImport = [{ emailAddress: 'a@a.com', newProp: 'newProp', sharedProp: 'importUser' }]
-    context.bindings[inputBindingName] = Buffer.from(JSON.stringify(usersToImport))
+    bindUsersForImport(usersToImport)
 
     await importData(context)
 
@@ -97,7 +91,7 @@ describe('ImportData function', () => {
       active: true,
       existingProp: existingUsers[0].existingProp,
       id: existingUsers[0].id,
-      importDate: dateNow,
+      importDate,
       newProp: usersToImport[0].newProp,
       sharedProp: usersToImport[0].sharedProp
     }))
@@ -108,7 +102,7 @@ describe('ImportData function', () => {
     fetchAllMock.mockResolvedValueOnce({ resources: existingUsers })
     readMock.mockResolvedValueOnce({ })
     const usersToImport = [{ emailAddress: 'a@a.com', newProp: 'newProp', sharedProp: 'importUser' }]
-    context.bindings[inputBindingName] = Buffer.from(JSON.stringify(usersToImport))
+    bindUsersForImport(usersToImport)
 
     await importData(context)
 
@@ -122,7 +116,7 @@ describe('ImportData function', () => {
     expect(createMock).toHaveBeenCalledWith(expect.objectContaining({
       active: true,
       id: usersToImport[0].emailAddress,
-      importDate: dateNow,
+      importDate,
       newProp: usersToImport[0].newProp,
       sharedProp: usersToImport[0].sharedProp
     }))
@@ -136,7 +130,7 @@ describe('ImportData function', () => {
     readMock.mockResolvedValueOnce({ })
     readMock.mockResolvedValueOnce({ resource: existingUsers[0] })
     const usersToImport = [{ emailAddress: 'b@b.com', newProp: 'newProp', sharedProp: 'importUser' }]
-    context.bindings[inputBindingName] = Buffer.from(JSON.stringify(usersToImport))
+    bindUsersForImport(usersToImport)
 
     await importData(context)
 
@@ -156,31 +150,19 @@ describe('ImportData function', () => {
     }))
   })
 
-  test.skip('incoming file contents are saved to output binding with email as id and additional props', async () => {
-    const inputUsers = [{ emailAddress: 'a@a.com', phoneNumbers: ['07000111222'] }]
-    context.bindings[inputBindingName] = Buffer.from(JSON.stringify(inputUsers))
-
-    await importData(context)
-
-    expect(context.bindings).toHaveProperty(outputBindingName)
-    expect(context.bindings[outputBindingName]).toHaveLength(1)
-    const outputUsers = context.bindings[outputBindingName]
-    expectOutboundUser(inputUsers[0], outputUsers[0], dateNow)
-  })
-
-  test.skip('all users use the same import date', async () => {
-    const inputUsers = [
-      { emailAddress: 'a@a.com', phoneNumbers: ['07000111222'] },
-      { emailAddress: 'b@b.com', phoneNumbers: ['07000112233'] }
-    ]
-    context.bindings[inputBindingName] = Buffer.from(JSON.stringify(inputUsers))
+  test('users updated and created share the same import date', async () => {
+    const existingUsers = [{ id: 'a@a.com', existingProp: 'existingProp', importDate: 1234567890 }]
+    fetchAllMock.mockResolvedValueOnce({ resources: existingUsers })
+    readMock.mockResolvedValueOnce({ resource: existingUsers[0] })
+    readMock.mockResolvedValueOnce({ })
+    const usersToImport = [{ emailAddress: 'a@a.com', newProp: 'newProp' }, { emailAddress: 'b@b.com', newProp: 'newProp', sharedProp: 'importUser' }]
+    bindUsersForImport(usersToImport)
 
     await importData(context)
 
     expect(Date.now).toHaveBeenCalledTimes(1)
-    const outputUsers = context.bindings[outputBindingName]
-    expectOutboundUser(inputUsers[0], outputUsers[0], dateNow)
-    expectOutboundUser(inputUsers[1], outputUsers[1], dateNow)
+    expect(replaceMock).toHaveBeenCalledWith(expect.objectContaining({ importDate }))
+    expect(createMock).toHaveBeenCalledWith(expect.objectContaining({ importDate }))
   })
 
   test('an error is thrown (and logged) when an error occurs', async () => {
