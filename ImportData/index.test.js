@@ -1,7 +1,6 @@
 const testEnvVars = require('../test/testEnvVars')
 
 const inputBindingName = 'blobContents'
-const outputBindingName = 'users'
 
 describe('ImportData function', () => {
   const context = require('../test/defaultContext')
