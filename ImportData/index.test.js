@@ -95,6 +95,11 @@ describe('ImportData function', () => {
       newProp: usersToImport[0].newProp,
       sharedProp: usersToImport[0].sharedProp
     }))
+    expect(context.log).toHaveBeenNthCalledWith(1, `Users to import: ${usersToImport.length}.`)
+    expect(context.log).toHaveBeenNthCalledWith(2, `Users already existing: ${existingUsers.length}.`)
+    expect(context.log).toHaveBeenNthCalledWith(3, '0 user(s) created: .')
+    expect(context.log).toHaveBeenNthCalledWith(4, `1 user(s) updated: ${existingUsers[0].id}.`)
+    expect(context.log).toHaveBeenNthCalledWith(5, '0 user(s) inactive: .')
   })
 
   test('an item to import with no existing record is created (joiners)', async () => {
@@ -121,6 +126,11 @@ describe('ImportData function', () => {
       sharedProp: usersToImport[0].sharedProp
     }))
     expect(createMock.mock.calls[0]).not.toHaveProperty('existingProp')
+    expect(context.log).toHaveBeenNthCalledWith(1, `Users to import: ${usersToImport.length}.`)
+    expect(context.log).toHaveBeenNthCalledWith(2, `Users already existing: ${existingUsers.length}.`)
+    expect(context.log).toHaveBeenNthCalledWith(3, `1 user(s) created: ${usersToImport[0].emailAddress}.`)
+    expect(context.log).toHaveBeenNthCalledWith(4, '0 user(s) updated: .')
+    expect(context.log).toHaveBeenNthCalledWith(5, '0 user(s) inactive: .')
   })
 
   test('an existing record with no item to import is set inactive (leavers)', async () => {
@@ -148,9 +158,14 @@ describe('ImportData function', () => {
       importDate: previousImportDate,
       sharedProp: existingUsers[0].sharedProp
     }))
+    expect(context.log).toHaveBeenNthCalledWith(1, `Users to import: ${usersToImport.length}.`)
+    expect(context.log).toHaveBeenNthCalledWith(2, `Users already existing: ${existingUsers.length}.`)
+    expect(context.log).toHaveBeenNthCalledWith(3, `1 user(s) created: ${usersToImport[0].emailAddress}.`)
+    expect(context.log).toHaveBeenNthCalledWith(4, '0 user(s) updated: .')
+    expect(context.log).toHaveBeenNthCalledWith(5, `1 user(s) inactive: ${existingUsers[0].id}.`)
   })
 
-  test('users updated and created share the same import date', async () => {
+  test('users updated and created share the same import date and report correctly', async () => {
     const existingUsers = [{ id: 'a@a.com', existingProp: 'existingProp', importDate: 1234567890 }]
     fetchAllMock.mockResolvedValueOnce({ resources: existingUsers })
     readMock.mockResolvedValueOnce({ resource: existingUsers[0] })

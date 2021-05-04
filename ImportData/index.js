@@ -57,7 +57,9 @@ module.exports = async function (context) {
       await usersContainer.item(emailAddress, emailAddress).replace(resource)
     }
 
-    context.log(`${usersCreated.length} users created: ${usersCreated}.\n${usersUpdated.length} users updated: ${usersUpdated}.\n${usersInactive.length} users inactive: ${usersInactive}.`)
+    context.log(`${usersCreated.length} user(s) created: ${usersCreated}.`)
+    context.log(`${usersUpdated.length} user(s) updated: ${usersUpdated}.`)
+    context.log(`${usersInactive.length} user(s) inactive: ${usersInactive}.`)
   } catch (e) {
     context.log.error(e)
     // Throwing an error ensures the built-in retry will kick in
