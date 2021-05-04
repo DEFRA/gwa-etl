@@ -14,7 +14,6 @@ describe('ImportData function', () => {
   let fetchAllMock
   let itemMock
   let queryMock
-  let readMock
   let replaceMock
 
   function bindUsersForImport (users) {
@@ -30,9 +29,8 @@ describe('ImportData function', () => {
 
     createMock = jest.fn()
     fetchAllMock = jest.fn()
-    readMock = jest.fn()
     replaceMock = jest.fn()
-    itemMock = jest.fn(() => { return { read: readMock, replace: replaceMock } })
+    itemMock = jest.fn(() => { return { replace: replaceMock } })
     queryMock = jest.fn(() => { return { fetchAll: fetchAllMock } })
     containerMock = jest.fn(() => {
       return {
@@ -73,18 +71,15 @@ describe('ImportData function', () => {
   test('an item to import with an existing record is updated (movers or no change)', async () => {
     const existingUsers = [{ id: 'a@a.com', existingProp: 'existingProp', sharedProp: 'existingUser' }]
     fetchAllMock.mockResolvedValueOnce({ resources: existingUsers })
-    readMock.mockResolvedValueOnce({ resource: existingUsers[0] })
     const usersToImport = [{ emailAddress: 'a@a.com', newProp: 'newProp', sharedProp: 'importUser' }]
     bindUsersForImport(usersToImport)
 
     await importData(context)
 
     expect(queryMock).toHaveBeenCalledTimes(1)
-    expect(queryMock).toHaveBeenCalledWith('SELECT c.id FROM c')
-    expect(itemMock).toHaveBeenCalledTimes(2)
-    const emailAddress = usersToImport[0].emailAddress
-    expect(itemMock).toHaveBeenCalledWith(emailAddress, emailAddress)
-    expect(readMock).toHaveBeenCalledTimes(1)
+    expect(queryMock).toHaveBeenCalledWith('SELECT * FROM c')
+    expect(itemMock).toHaveBeenCalledTimes(1)
+    expect(itemMock).toHaveBeenCalledWith(usersToImport[0].emailAddress, usersToImport[0].emailAddress)
     expect(replaceMock).toHaveBeenCalledTimes(1)
     expect(replaceMock).toHaveBeenCalledWith(expect.objectContaining({
       active: true,
@@ -104,18 +99,13 @@ describe('ImportData function', () => {
   test('an item to import with no existing record is created (joiners)', async () => {
     const existingUsers = []
     fetchAllMock.mockResolvedValueOnce({ resources: existingUsers })
-    readMock.mockResolvedValueOnce({ })
     const usersToImport = [{ emailAddress: 'a@a.com', newProp: 'newProp', sharedProp: 'importUser' }]
     bindUsersForImport(usersToImport)
 
     await importData(context)
 
     expect(queryMock).toHaveBeenCalledTimes(1)
-    expect(queryMock).toHaveBeenCalledWith('SELECT c.id FROM c')
-    expect(itemMock).toHaveBeenCalledTimes(1)
-    const emailAddress = usersToImport[0].emailAddress
-    expect(itemMock).toHaveBeenCalledWith(emailAddress, emailAddress)
-    expect(readMock).toHaveBeenCalledTimes(1)
+    expect(queryMock).toHaveBeenCalledWith('SELECT * FROM c')
     expect(createMock).toHaveBeenCalledTimes(1)
     expect(createMock).toHaveBeenCalledWith(expect.objectContaining({
       active: true,
@@ -136,19 +126,15 @@ describe('ImportData function', () => {
     const previousImportDate = 12345567890
     const existingUsers = [{ id: 'a@a.com', existingProp: 'existingProp', sharedProp: 'existingUser', importDate: previousImportDate }]
     fetchAllMock.mockResolvedValueOnce({ resources: existingUsers })
-    readMock.mockResolvedValueOnce({ })
-    readMock.mockResolvedValueOnce({ resource: existingUsers[0] })
     const usersToImport = [{ emailAddress: 'b@b.com', newProp: 'newProp', sharedProp: 'importUser' }]
     bindUsersForImport(usersToImport)
 
     await importData(context)
 
     expect(queryMock).toHaveBeenCalledTimes(1)
-    expect(queryMock).toHaveBeenCalledWith('SELECT c.id FROM c')
-    expect(itemMock).toHaveBeenCalledTimes(3)
-    const emailAddress = usersToImport[0].emailAddress
-    expect(itemMock).toHaveBeenCalledWith(emailAddress, emailAddress)
-    expect(readMock).toHaveBeenCalledTimes(2)
+    expect(queryMock).toHaveBeenCalledWith('SELECT * FROM c')
+    expect(itemMock).toHaveBeenCalledTimes(1)
+    expect(itemMock).toHaveBeenCalledWith(existingUsers[0].id, existingUsers[0].id)
     expect(replaceMock).toHaveBeenCalledTimes(1)
     expect(replaceMock).toHaveBeenCalledWith(expect.objectContaining({
       active: false,
@@ -167,8 +153,6 @@ describe('ImportData function', () => {
   test('users updated and created share the same import date and report correctly', async () => {
     const existingUsers = [{ id: 'a@a.com', existingProp: 'existingProp', importDate: 1234567890 }]
     fetchAllMock.mockResolvedValueOnce({ resources: existingUsers })
-    readMock.mockResolvedValueOnce({ resource: existingUsers[0] })
-    readMock.mockResolvedValueOnce({ })
     const usersToImport = [{ emailAddress: 'a@a.com', newProp: 'newProp' }, { emailAddress: 'b@b.com', newProp: 'newProp', sharedProp: 'importUser' }]
     bindUsersForImport(usersToImport)
 

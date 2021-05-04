@@ -8,18 +8,14 @@ const client = new CosmosClient(connectionString)
 const db = client.database(dbName)
 const usersContainer = db.container(usersContainerName)
 
-async function setUsersInactive (container, emailAddresses) {
-  const usersInactive = []
-  for (const emailAddress of emailAddresses) {
-    usersInactive.push(emailAddress)
-    const { resource } = await container.item(emailAddress, emailAddress).read()
-    resource.active = false
-    await container.item(emailAddress, emailAddress).replace(resource)
+async function setUsersInactive (container, existingUsers) {
+  for (const user of existingUsers.values()) {
+    user.active = false
+    await container.item(user.id, user.id).replace(user)
   }
-  return usersInactive
 }
 
-async function createOrUpdateUsers (container, usersToImport, existingUserIds) {
+async function createOrUpdateUsers (container, usersToImport, existingUsers) {
   const usersCreated = []
   const usersUpdated = []
 
@@ -31,12 +27,12 @@ async function createOrUpdateUsers (container, usersToImport, existingUserIds) {
     user.importDate = importDate
     delete user.emailAddress
 
-    const { resource } = await container.item(emailAddress, emailAddress).read()
+    const existingUser = existingUsers.get(emailAddress)
 
-    if (resource) {
+    if (existingUser) {
       usersUpdated.push(emailAddress)
-      await container.item(emailAddress, emailAddress).replace({ ...resource, ...user })
-      existingUserIds.delete(emailAddress)
+      await container.item(emailAddress, emailAddress).replace({ ...existingUser, ...user })
+      existingUsers.delete(emailAddress)
     } else {
       usersCreated.push(emailAddress)
       await container.items.create(user)
@@ -51,8 +47,8 @@ function getUsersToImport (context) {
 }
 
 async function getExistingUsers (container) {
-  const queryResponse = await container.items.query('SELECT c.id FROM c').fetchAll()
-  return new Set(queryResponse.resources.map(r => r.id))
+  const queryResponse = await container.items.query('SELECT * FROM c').fetchAll()
+  return new Map(queryResponse.resources.map(r => [r.id, r]))
 }
 
 module.exports = async function (context) {
@@ -65,16 +61,16 @@ module.exports = async function (context) {
     }
     context.log(`Users to import: ${usersToImport.length}.`)
 
-    const existingUserIds = await getExistingUsers(usersContainer)
-    context.log(`Users already existing: ${existingUserIds.size}.`)
+    const existingUsers = await getExistingUsers(usersContainer)
+    context.log(`Users already existing: ${existingUsers.size}.`)
 
-    const { usersCreated, usersUpdated } = await createOrUpdateUsers(usersContainer, usersToImport, existingUserIds)
+    const { usersCreated, usersUpdated } = await createOrUpdateUsers(usersContainer, usersToImport, existingUsers)
 
-    const usersInactive = await setUsersInactive(usersContainer, existingUserIds)
+    await setUsersInactive(usersContainer, existingUsers)
 
     context.log(`${usersCreated.length} user(s) created: ${usersCreated}.`)
     context.log(`${usersUpdated.length} user(s) updated: ${usersUpdated}.`)
-    context.log(`${usersInactive.length} user(s) inactive: ${usersInactive}.`)
+    context.log(`${existingUsers.size} user(s) inactive: ${Array.from(existingUsers.keys())}.`)
   } catch (e) {
     context.log.error(e)
     // Throwing an error ensures the built-in retry will kick in
