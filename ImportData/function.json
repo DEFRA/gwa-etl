@@ -6,14 +6,6 @@
       "direction": "in",
       "path": "%DATA_IMPORT_CONTAINER%/all-users.json",
       "connection": "AzureWebJobsStorage"
-    },
-    {
-      "name": "users",
-      "type": "cosmosDB",
-      "direction": "out",
-      "databaseName": "gwa",
-      "collectionName": "%COSMOS_DB_USERS_CONTAINER%",
-      "connectionStringSetting": "COSMOS_DB_CONNECTION_STRING"
     }
   ]
 }

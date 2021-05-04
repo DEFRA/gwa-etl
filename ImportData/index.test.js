@@ -188,18 +188,6 @@ describe('ImportData bindings', () => {
     expect(binding.name).toEqual(inputBindingName)
     expect(binding.type).toEqual('blobTrigger')
     expect(binding.path).toEqual(`%${testEnvVars.DATA_IMPORT_CONTAINER}%/${allUsersFilename}`)
-  })
-
-  // TODO: remove once tested with direct access to Cosmos
-  test.skip('cosmos output binding is correct', () => {
-    const bindings = functionBindings.filter((binding) => binding.direction === 'out')
-    expect(bindings).toHaveLength(1)
-
-    const binding = bindings[0]
-    expect(binding.name).toEqual(outputBindingName)
-    expect(binding.type).toEqual('cosmosDB')
-    expect(binding.databaseName).toEqual('gwa')
-    expect(binding.collectionName).toEqual(`%${testEnvVars.COSMOS_DB_USERS_CONTAINER}%`)
-    expect(binding.connectionStringSetting).toEqual(`${testEnvVars.COSMOS_DB_CONNECTION_STRING}`)
+    expect(binding.connection).toEqual('AzureWebJobsStorage')
   })
 })

@@ -58,8 +58,6 @@ module.exports = async function (context) {
     }
 
     context.log(`${usersCreated.length} users created: ${usersCreated}.\n${usersUpdated.length} users updated: ${usersUpdated}.\n${usersInactive.length} users inactive: ${usersInactive}.`)
-    // TODO: Consider using bindings for new users.
-    // context.bindings.users = usersToImport
   } catch (e) {
     context.log.error(e)
     // Throwing an error ensures the built-in retry will kick in
