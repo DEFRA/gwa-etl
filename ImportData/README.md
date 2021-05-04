@@ -16,3 +16,14 @@ as inactive (accounting for leavers).
 The data being imported is merged with the existing data, giving precedence to
 the new data. Therefore, any additional data associated to the user e.g.
 personal phone numbers, will be maintained during the import process.
+
+### Creation of database and container
+
+The database and container must for the function execution to be successful.
+The function doesn't attempt to create the database or container as they are
+fundamental to the operation of the message sending solution and will be
+created during initial deployment.
+
+The  container should have the `partitionKey` set to `/id` (the `id` is
+`emailAddress`, providing a unique identifier and a good spread for
+partitions).
