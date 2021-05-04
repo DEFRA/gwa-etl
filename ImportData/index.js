@@ -8,14 +8,48 @@ const client = new CosmosClient(connectionString)
 const db = client.database(dbName)
 const usersContainer = db.container(usersContainerName)
 
-async function setUsersInactive (container, existingUsers) {
-  for (const user of existingUsers.values()) {
-    user.active = false
-    await container.item(user.id, user.id).replace(user)
+async function upsertUsers (context, container, allUsers) {
+  const { usersCreated, usersInactive, usersUpdated } = allUsers
+  const users = [...usersCreated, ...usersInactive, ...usersUpdated]
+  // const updateSuccess = []
+
+  let count = 0
+  const batchSize = 100
+  while (users.length) {
+    context.log(`Running bulk operation for users in batch group ${count * batchSize + 1} to ${++count * batchSize}.`)
+    const operations = []
+    const batch = users.splice(0, batchSize)
+    for (const user of batch) {
+      // remove _ props - no need
+      // for (const prop in user) {
+      //   if (prop.startsWith('_')) {
+      //     delete user[prop]
+      //   }
+      // }
+      operations.push({
+        operationType: 'Upsert',
+        partitionKey: user.id,
+        resourceBody: user
+      })
+    }
+    await container.items.bulk(operations)
+    // // TODO: handle retries. if any of the response contain a 429, remove others and reprocess
+    // const responses = await container.items.bulk(operations) //, { continueOnError: true })
+    // context.log(responses)
+    // for (const response of responses) {
+    //   if (response.statusCode === 429) {
+    //     context.log.warn(response)
+    //   }
+    // }
   }
+
+  context.log(`${usersCreated.length} user(s) created: ${usersCreated.map(user => user.id)}.`)
+  context.log(`${usersUpdated.length} user(s) updated: ${usersUpdated.map(user => user.id)}.`)
+  context.log(`${usersInactive.length} user(s) inactive: ${usersInactive.map(user => user.id)}.`)
 }
 
-async function createOrUpdateUsers (container, usersToImport, existingUsers) {
+async function categoriseUsers (usersToImport, existingUsers) {
+  const existingUsersMap = new Map(existingUsers.map(user => [user.id, user]))
   const usersCreated = []
   const usersUpdated = []
 
@@ -27,18 +61,26 @@ async function createOrUpdateUsers (container, usersToImport, existingUsers) {
     user.importDate = importDate
     delete user.emailAddress
 
-    const existingUser = existingUsers.get(emailAddress)
+    const existingUser = existingUsersMap.get(emailAddress)
 
     if (existingUser) {
-      usersUpdated.push(emailAddress)
-      await container.item(emailAddress, emailAddress).replace({ ...existingUser, ...user })
-      existingUsers.delete(emailAddress)
+      usersUpdated.push({ ...existingUser, ...user })
+      existingUsersMap.delete(emailAddress)
     } else {
-      usersCreated.push(emailAddress)
-      await container.items.create(user)
+      usersCreated.push(user)
     }
   }
-  return { usersCreated, usersUpdated }
+
+  const usersInactive = Array.from(existingUsersMap.values()).map(user => {
+    user.active = false
+    return user
+  })
+
+  return {
+    usersCreated,
+    usersInactive,
+    usersUpdated
+  }
 }
 
 function getUsersToImport (context) {
@@ -47,8 +89,7 @@ function getUsersToImport (context) {
 }
 
 async function getExistingUsers (container) {
-  const queryResponse = await container.items.query('SELECT * FROM c').fetchAll()
-  return new Map(queryResponse.resources.map(r => [r.id, r]))
+  return (await container.items.query('SELECT * FROM c').fetchAll()).resources
 }
 
 module.exports = async function (context) {
@@ -62,15 +103,11 @@ module.exports = async function (context) {
     context.log(`Users to import: ${usersToImport.length}.`)
 
     const existingUsers = await getExistingUsers(usersContainer)
-    context.log(`Users already existing: ${existingUsers.size}.`)
+    context.log(`Users already existing: ${existingUsers.length}.`)
 
-    const { usersCreated, usersUpdated } = await createOrUpdateUsers(usersContainer, usersToImport, existingUsers)
+    const users = await categoriseUsers(usersToImport, existingUsers)
 
-    await setUsersInactive(usersContainer, existingUsers)
-
-    context.log(`${usersCreated.length} user(s) created: ${usersCreated}.`)
-    context.log(`${usersUpdated.length} user(s) updated: ${usersUpdated}.`)
-    context.log(`${existingUsers.size} user(s) inactive: ${Array.from(existingUsers.keys())}.`)
+    await upsertUsers(context, usersContainer, users)
   } catch (e) {
     context.log.error(e)
     // Throwing an error ensures the built-in retry will kick in

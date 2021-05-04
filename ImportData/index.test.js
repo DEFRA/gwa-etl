@@ -9,12 +9,10 @@ describe('ImportData function', () => {
 
   let importData
   let CosmosClient
+  let bulkMock
   let containerMock
-  let createMock
   let fetchAllMock
-  let itemMock
   let queryMock
-  let replaceMock
 
   function bindUsersForImport (users) {
     context.bindings[inputBindingName] = Buffer.from(JSON.stringify(users))
@@ -27,16 +25,13 @@ describe('ImportData function', () => {
     CosmosClient = require('@azure/cosmos').CosmosClient
     jest.mock('@azure/cosmos')
 
-    createMock = jest.fn()
+    bulkMock = jest.fn()
     fetchAllMock = jest.fn()
-    replaceMock = jest.fn()
-    itemMock = jest.fn(() => { return { replace: replaceMock } })
     queryMock = jest.fn(() => { return { fetchAll: fetchAllMock } })
     containerMock = jest.fn(() => {
       return {
-        item: itemMock,
         items: {
-          create: createMock,
+          bulk: bulkMock,
           query: queryMock
         }
       }
@@ -78,22 +73,25 @@ describe('ImportData function', () => {
 
     expect(queryMock).toHaveBeenCalledTimes(1)
     expect(queryMock).toHaveBeenCalledWith('SELECT * FROM c')
-    expect(itemMock).toHaveBeenCalledTimes(1)
-    expect(itemMock).toHaveBeenCalledWith(usersToImport[0].emailAddress, usersToImport[0].emailAddress)
-    expect(replaceMock).toHaveBeenCalledTimes(1)
-    expect(replaceMock).toHaveBeenCalledWith(expect.objectContaining({
-      active: true,
-      existingProp: existingUsers[0].existingProp,
-      id: existingUsers[0].id,
-      importDate,
-      newProp: usersToImport[0].newProp,
-      sharedProp: usersToImport[0].sharedProp
-    }))
+    expect(bulkMock).toHaveBeenCalledTimes(1)
+    expect(bulkMock).toHaveBeenCalledWith(expect.arrayContaining([{
+      operationType: 'Upsert',
+      partitionKey: existingUsers[0].id,
+      resourceBody: expect.objectContaining({
+        active: true,
+        existingProp: existingUsers[0].existingProp,
+        id: existingUsers[0].id,
+        importDate,
+        newProp: usersToImport[0].newProp,
+        sharedProp: usersToImport[0].sharedProp
+      })
+    }]))
     expect(context.log).toHaveBeenNthCalledWith(1, `Users to import: ${usersToImport.length}.`)
     expect(context.log).toHaveBeenNthCalledWith(2, `Users already existing: ${existingUsers.length}.`)
-    expect(context.log).toHaveBeenNthCalledWith(3, '0 user(s) created: .')
-    expect(context.log).toHaveBeenNthCalledWith(4, `1 user(s) updated: ${existingUsers[0].id}.`)
-    expect(context.log).toHaveBeenNthCalledWith(5, '0 user(s) inactive: .')
+    expect(context.log).toHaveBeenNthCalledWith(3, 'Running bulk operation for users in batch group 1 to 100.')
+    expect(context.log).toHaveBeenNthCalledWith(4, '0 user(s) created: .')
+    expect(context.log).toHaveBeenNthCalledWith(5, `1 user(s) updated: ${existingUsers[0].id}.`)
+    expect(context.log).toHaveBeenNthCalledWith(6, '0 user(s) inactive: .')
   })
 
   test('an item to import with no existing record is created (joiners)', async () => {
@@ -106,20 +104,24 @@ describe('ImportData function', () => {
 
     expect(queryMock).toHaveBeenCalledTimes(1)
     expect(queryMock).toHaveBeenCalledWith('SELECT * FROM c')
-    expect(createMock).toHaveBeenCalledTimes(1)
-    expect(createMock).toHaveBeenCalledWith(expect.objectContaining({
-      active: true,
-      id: usersToImport[0].emailAddress,
-      importDate,
-      newProp: usersToImport[0].newProp,
-      sharedProp: usersToImport[0].sharedProp
-    }))
-    expect(createMock.mock.calls[0]).not.toHaveProperty('existingProp')
+    expect(bulkMock).toHaveBeenCalledTimes(1)
+    expect(bulkMock).toHaveBeenCalledWith(expect.arrayContaining([{
+      operationType: 'Upsert',
+      partitionKey: usersToImport[0].emailAddress,
+      resourceBody: expect.objectContaining({
+        active: true,
+        id: usersToImport[0].emailAddress,
+        importDate,
+        newProp: usersToImport[0].newProp,
+        sharedProp: usersToImport[0].sharedProp
+      })
+    }]))
     expect(context.log).toHaveBeenNthCalledWith(1, `Users to import: ${usersToImport.length}.`)
     expect(context.log).toHaveBeenNthCalledWith(2, `Users already existing: ${existingUsers.length}.`)
-    expect(context.log).toHaveBeenNthCalledWith(3, `1 user(s) created: ${usersToImport[0].emailAddress}.`)
-    expect(context.log).toHaveBeenNthCalledWith(4, '0 user(s) updated: .')
-    expect(context.log).toHaveBeenNthCalledWith(5, '0 user(s) inactive: .')
+    expect(context.log).toHaveBeenNthCalledWith(3, 'Running bulk operation for users in batch group 1 to 100.')
+    expect(context.log).toHaveBeenNthCalledWith(4, `1 user(s) created: ${usersToImport[0].emailAddress}.`)
+    expect(context.log).toHaveBeenNthCalledWith(5, '0 user(s) updated: .')
+    expect(context.log).toHaveBeenNthCalledWith(6, '0 user(s) inactive: .')
   })
 
   test('an existing record with no item to import is set inactive (leavers)', async () => {
@@ -133,21 +135,29 @@ describe('ImportData function', () => {
 
     expect(queryMock).toHaveBeenCalledTimes(1)
     expect(queryMock).toHaveBeenCalledWith('SELECT * FROM c')
-    expect(itemMock).toHaveBeenCalledTimes(1)
-    expect(itemMock).toHaveBeenCalledWith(existingUsers[0].id, existingUsers[0].id)
-    expect(replaceMock).toHaveBeenCalledTimes(1)
-    expect(replaceMock).toHaveBeenCalledWith(expect.objectContaining({
-      active: false,
-      existingProp: existingUsers[0].existingProp,
-      id: existingUsers[0].id,
-      importDate: previousImportDate,
-      sharedProp: existingUsers[0].sharedProp
-    }))
+    expect(bulkMock).toHaveBeenCalledTimes(1)
+    const expected = [{
+      operationType: 'Upsert',
+      partitionKey: existingUsers[0].id,
+      resourceBody: expect.objectContaining({
+        active: false,
+        existingProp: existingUsers[0].existingProp,
+        id: existingUsers[0].id,
+        importDate: previousImportDate,
+        sharedProp: existingUsers[0].sharedProp
+      })
+    }]
+    expect(bulkMock).toHaveBeenCalledWith(expect.arrayContaining(expected))
     expect(context.log).toHaveBeenNthCalledWith(1, `Users to import: ${usersToImport.length}.`)
     expect(context.log).toHaveBeenNthCalledWith(2, `Users already existing: ${existingUsers.length}.`)
-    expect(context.log).toHaveBeenNthCalledWith(3, `1 user(s) created: ${usersToImport[0].emailAddress}.`)
-    expect(context.log).toHaveBeenNthCalledWith(4, '0 user(s) updated: .')
-    expect(context.log).toHaveBeenNthCalledWith(5, `1 user(s) inactive: ${existingUsers[0].id}.`)
+    expect(context.log).toHaveBeenNthCalledWith(3, 'Running bulk operation for users in batch group 1 to 100.')
+    expect(context.log).toHaveBeenNthCalledWith(4, `1 user(s) created: ${usersToImport[0].emailAddress}.`)
+    expect(context.log).toHaveBeenNthCalledWith(5, '0 user(s) updated: .')
+    expect(context.log).toHaveBeenNthCalledWith(6, `1 user(s) inactive: ${existingUsers[0].id}.`)
+  })
+
+  // TODO
+  test('users are updated in batches of 100', async () => {
   })
 
   test('users updated and created share the same import date and report correctly', async () => {
@@ -159,8 +169,26 @@ describe('ImportData function', () => {
     await importData(context)
 
     expect(Date.now).toHaveBeenCalledTimes(1)
-    expect(replaceMock).toHaveBeenCalledWith(expect.objectContaining({ importDate }))
-    expect(createMock).toHaveBeenCalledWith(expect.objectContaining({ importDate }))
+    expect(bulkMock).toHaveBeenCalledWith(expect.arrayContaining([{
+      operationType: 'Upsert',
+      partitionKey: usersToImport[1].emailAddress,
+      resourceBody: expect.objectContaining({
+        active: true,
+        id: usersToImport[1].emailAddress,
+        importDate,
+        newProp: usersToImport[1].newProp,
+        sharedProp: usersToImport[1].sharedProp
+      })
+    }, {
+      operationType: 'Upsert',
+      partitionKey: usersToImport[0].emailAddress,
+      resourceBody: expect.objectContaining({
+        active: true,
+        id: usersToImport[0].emailAddress,
+        importDate,
+        newProp: usersToImport[0].newProp
+      })
+    }]))
   })
 
   test('an error is thrown (and logged) when an error occurs', async () => {
