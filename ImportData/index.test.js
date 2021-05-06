@@ -68,6 +68,9 @@ describe('ImportData function', () => {
     fetchAllMock.mockResolvedValueOnce({ resources: existingUsers })
     const usersToImport = [{ emailAddress: 'a@a.com', newProp: 'newProp', sharedProp: 'importUser' }]
     bindUsersForImport(usersToImport)
+    bulkMock.mockResolvedValueOnce([
+      { requestCharge: 10, resourceBody: { id: existingUsers[0].id }, statusCode: 200 }
+    ])
 
     await importData(context)
 
@@ -86,12 +89,17 @@ describe('ImportData function', () => {
         sharedProp: usersToImport[0].sharedProp
       })
     }]))
-    expect(context.log).toHaveBeenNthCalledWith(1, `Users to import: ${usersToImport.length}.`)
-    expect(context.log).toHaveBeenNthCalledWith(2, `Users already existing: ${existingUsers.length}.`)
-    expect(context.log).toHaveBeenNthCalledWith(3, 'Running bulk operation for users in batch group 1 to 100.')
-    expect(context.log).toHaveBeenNthCalledWith(4, '0 user(s) created: .')
-    expect(context.log).toHaveBeenNthCalledWith(5, `1 user(s) updated: ${existingUsers[0].id}.`)
-    expect(context.log).toHaveBeenNthCalledWith(6, '0 user(s) inactive: .')
+    expectLoggingToBeCorrect([
+      `Users to import: ${usersToImport.length}.`,
+      `Users already existing: ${existingUsers.length}.`,
+      'Running bulk operation for users in batch group 1 to 100.',
+      'Users updated successfully: 1\nUsers still be to updated: 0\nCost (RUs): 10.',
+      'After 1 attempt(s), 0 user(s) are still to be updated.',
+      'Total cost (RUs): 10.',
+      '0 user(s) created: .',
+      `1 user(s) updated: ${existingUsers[0].id}.`,
+      '0 user(s) inactive: .'
+    ])
   })
 
   test('an item to import with no existing record is created (joiners)', async () => {
@@ -99,6 +107,9 @@ describe('ImportData function', () => {
     fetchAllMock.mockResolvedValueOnce({ resources: existingUsers })
     const usersToImport = [{ emailAddress: 'a@a.com', newProp: 'newProp', sharedProp: 'importUser' }]
     bindUsersForImport(usersToImport)
+    bulkMock.mockResolvedValueOnce([
+      { requestCharge: 10, resourceBody: { id: usersToImport[0].emailAddress }, statusCode: 200 }
+    ])
 
     await importData(context)
 
@@ -116,13 +127,22 @@ describe('ImportData function', () => {
         sharedProp: usersToImport[0].sharedProp
       })
     }]))
-    expect(context.log).toHaveBeenNthCalledWith(1, `Users to import: ${usersToImport.length}.`)
-    expect(context.log).toHaveBeenNthCalledWith(2, `Users already existing: ${existingUsers.length}.`)
-    expect(context.log).toHaveBeenNthCalledWith(3, 'Running bulk operation for users in batch group 1 to 100.')
-    expect(context.log).toHaveBeenNthCalledWith(4, `1 user(s) created: ${usersToImport[0].emailAddress}.`)
-    expect(context.log).toHaveBeenNthCalledWith(5, '0 user(s) updated: .')
-    expect(context.log).toHaveBeenNthCalledWith(6, '0 user(s) inactive: .')
+    expectLoggingToBeCorrect([
+      `Users to import: ${usersToImport.length}.`,
+      `Users already existing: ${existingUsers.length}.`,
+      'Running bulk operation for users in batch group 1 to 100.',
+      'Users updated successfully: 1\nUsers still be to updated: 0\nCost (RUs): 10.',
+      'After 1 attempt(s), 0 user(s) are still to be updated.',
+      'Total cost (RUs): 10.',
+      `1 user(s) created: ${usersToImport[0].emailAddress}.`,
+      '0 user(s) updated: .',
+      '0 user(s) inactive: .'
+    ])
   })
+
+  function expectLoggingToBeCorrect (logs) {
+    logs.forEach((log, i) => expect(context.log).toHaveBeenNthCalledWith(i + 1, log))
+  }
 
   test('an existing record with no item to import is set inactive (leavers)', async () => {
     const previousImportDate = 12345567890
@@ -130,6 +150,10 @@ describe('ImportData function', () => {
     fetchAllMock.mockResolvedValueOnce({ resources: existingUsers })
     const usersToImport = [{ emailAddress: 'b@b.com', newProp: 'newProp', sharedProp: 'importUser' }]
     bindUsersForImport(usersToImport)
+    bulkMock.mockResolvedValueOnce([
+      { requestCharge: 10, resourceBody: { id: existingUsers[0].id }, statusCode: 200 },
+      { requestCharge: 10, resourceBody: { id: usersToImport[0].emailAddress }, statusCode: 200 }
+    ])
 
     await importData(context)
 
@@ -148,16 +172,25 @@ describe('ImportData function', () => {
       })
     }]
     expect(bulkMock).toHaveBeenCalledWith(expect.arrayContaining(expected))
-    expect(context.log).toHaveBeenNthCalledWith(1, `Users to import: ${usersToImport.length}.`)
-    expect(context.log).toHaveBeenNthCalledWith(2, `Users already existing: ${existingUsers.length}.`)
-    expect(context.log).toHaveBeenNthCalledWith(3, 'Running bulk operation for users in batch group 1 to 100.')
-    expect(context.log).toHaveBeenNthCalledWith(4, `1 user(s) created: ${usersToImport[0].emailAddress}.`)
-    expect(context.log).toHaveBeenNthCalledWith(5, '0 user(s) updated: .')
-    expect(context.log).toHaveBeenNthCalledWith(6, `1 user(s) inactive: ${existingUsers[0].id}.`)
+    expectLoggingToBeCorrect([
+      `Users to import: ${usersToImport.length}.`,
+      `Users already existing: ${existingUsers.length}.`,
+      'Running bulk operation for users in batch group 1 to 100.',
+      'Users updated successfully: 2\nUsers still be to updated: 0\nCost (RUs): 20.',
+      'After 1 attempt(s), 0 user(s) are still to be updated.',
+      'Total cost (RUs): 20.',
+      `1 user(s) created: ${usersToImport[0].emailAddress}.`,
+      '0 user(s) updated: .',
+      `1 user(s) inactive: ${existingUsers[0].id}.`
+    ])
   })
 
   // TODO
   test('users are updated in batches of 100', async () => {
+  })
+
+  // TODO
+  test('rate limited updates are retried', async () => {
   })
 
   test('users updated and created share the same import date and report correctly', async () => {
@@ -165,6 +198,10 @@ describe('ImportData function', () => {
     fetchAllMock.mockResolvedValueOnce({ resources: existingUsers })
     const usersToImport = [{ emailAddress: 'a@a.com', newProp: 'newProp' }, { emailAddress: 'b@b.com', newProp: 'newProp', sharedProp: 'importUser' }]
     bindUsersForImport(usersToImport)
+    bulkMock.mockResolvedValueOnce([
+      { requestCharge: 10, resourceBody: { id: usersToImport[0].emailAddress }, statusCode: 200 },
+      { requestCharge: 10, resourceBody: { id: usersToImport[1].emailAddress }, statusCode: 200 }
+    ])
 
     await importData(context)
 

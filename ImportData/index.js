@@ -8,41 +8,78 @@ const client = new CosmosClient(connectionString)
 const db = client.database(dbName)
 const usersContainer = db.container(usersContainerName)
 
-async function upsertUsers (context, container, allUsers) {
-  const { usersCreated, usersInactive, usersUpdated } = allUsers
-  const users = [...usersCreated, ...usersInactive, ...usersUpdated]
-  // const updateSuccess = []
+async function sleep (milliseconds) {
+  await new Promise(resolve => setTimeout(resolve, milliseconds))
+}
 
+async function upsert (context, container, usersToUpsert) {
+  const userMap = new Map(usersToUpsert.map(user => [user.id, user]))
+  const updatedUserSet = new Set()
+
+  let cost = 0
   let count = 0
   const batchSize = 100
-  while (users.length) {
+  while (usersToUpsert.length) {
     context.log(`Running bulk operation for users in batch group ${count * batchSize + 1} to ${++count * batchSize}.`)
     const operations = []
-    const batch = users.splice(0, batchSize)
+    const batch = usersToUpsert.splice(0, batchSize)
     for (const user of batch) {
-      // remove _ props - no need
-      // for (const prop in user) {
-      //   if (prop.startsWith('_')) {
-      //     delete user[prop]
-      //   }
-      // }
       operations.push({
         operationType: 'Upsert',
         partitionKey: user.id,
         resourceBody: user
       })
     }
-    await container.items.bulk(operations)
-    // // TODO: handle retries. if any of the response contain a 429, remove others and reprocess
-    // const responses = await container.items.bulk(operations) //, { continueOnError: true })
-    // context.log(responses)
-    // for (const response of responses) {
-    //   if (response.statusCode === 429) {
-    //     context.log.warn(response)
-    //   }
-    // }
-  }
+    // TODO: handle retries. if any of the response contain a 429, remove others and reprocess
+    const responses = await container.items.bulk(operations) //, { continueOnError: true })
 
+    for (const response of responses) {
+      if (response.statusCode === 429) {
+        context.log.warn(response)
+      } else if (response.statusCode === 200) {
+        updatedUserSet.add(response?.resourceBody?.id)
+        cost += response.requestCharge
+      }
+    }
+    await sleep(100)
+  }
+  // Remove successful ids from users
+  updatedUserSet.forEach(user => userMap.delete(user))
+
+  context.log(`Users updated successfully: ${updatedUserSet.size}\nUsers still be to updated: ${userMap.size}\nCost (RUs): ${cost}.`)
+
+  return {
+    cost,
+    userMap
+  }
+}
+
+async function upsertUsers (context, container, allUsers) {
+  const { usersCreated, usersInactive, usersUpdated } = allUsers
+  const usersToUpsert = [...usersCreated, ...usersInactive, ...usersUpdated]
+  let userMap = new Map(usersToUpsert.map(user => [user.id, user]))
+
+  const pause = 1000
+  let attempt = 1
+  let cost = 0
+
+  do {
+    const users = Array.from(userMap.values())
+    const res = await upsert(context, container, users)
+    userMap = res.userMap
+    cost += res.cost
+
+    if (userMap.size) {
+      attempt++
+      context.log(`Making attempt ${attempt} in ${pause} milliseconds.`)
+      await sleep(pause)
+    }
+  } while (userMap.size && attempt <= 10)
+
+  context.log(`After ${attempt} attempt(s), ${userMap.size} user(s) are still to be updated.`)
+  context.log(`Total cost (RUs): ${cost}.`)
+
+  // TODO: uncomment this
   context.log(`${usersCreated.length} user(s) created: ${usersCreated.map(user => user.id)}.`)
   context.log(`${usersUpdated.length} user(s) updated: ${usersUpdated.map(user => user.id)}.`)
   context.log(`${usersInactive.length} user(s) inactive: ${usersInactive.map(user => user.id)}.`)
