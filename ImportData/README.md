@@ -13,17 +13,34 @@ movers i.e. changes in organisation, location, phone number(s), etc.). Users
 already in the database and not in the import dataset will be marked
 as inactive (accounting for leavers).
 
-The data being imported is merged with the existing data, giving precedence to
-the new data. Therefore, any additional data associated to the user e.g.
-personal phone numbers, will be maintained during the import process.
+The data being imported is merged with the existing data, with precedence given
+to the new data. Therefore, should additional data already exist for any
+existing users e.g. personal phone numbers, this will be maintained during the
+import process.
+
+During import, it is likely rate limits will be encountered (signified with a
+`statusCode` of `429` for each item in the response that hit the rate limit).
+Note that when using the `bulk` API the `statusCode` is applicable to
+individual items rather than the entire response. When rate limits are hit, any
+users not updated will have another 9 attempts at being updated. Each attempt
+pauses for a configurable amount of time (based on the value set for the env
+var `IMPORT_ATTEMPT_SLEEP_DURATION`). Each batch of operations against the bulk
+API encounters a delay (the delay is based on the env var
+`IMPORT_BULK_BATCH_SLEEP_DURATION`). Having this additional delay helps to
+reduce the number of retry attempts necessary.
+
+Currently no action is taken should there be any users that have not been
+updated after all attempts have been made. This is due to not having
+experienced any situations during testing and for expediency. It is possible
+something will be implemented in the future.
 
 ### Creation of database and container
 
-The database and container must for the function execution to be successful.
-The function doesn't attempt to create the database or container as they are
-fundamental to the operation of the message sending solution and will be
-created during initial deployment.
+The database and container must exist for the function execution to be
+successful. The function doesn't attempt to create the database or container
+as they are fundamental to the operation of the message sending solution and
+will be created during initial deployment.
 
-The  container should have the `partitionKey` set to `/id` (the `id` is
+The container must have the `partitionKey` set to `/id` (the `id` is
 `emailAddress`, providing a unique identifier and a good spread for
 partitions).
