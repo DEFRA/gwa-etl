@@ -110,7 +110,7 @@ describe('ImportData function', () => {
     const usersToImport = [{ emailAddress: 'a@a.com', newProp: 'newProp', sharedProp: 'importUser' }]
     bindUsersForImport(usersToImport)
     bulkMock.mockResolvedValueOnce([
-      { requestCharge: 10, resourceBody: { id: usersToImport[0].emailAddress }, statusCode: 200 }
+      { requestCharge: 10, resourceBody: { id: usersToImport[0].emailAddress }, statusCode: 201 }
     ])
 
     await importData(context)

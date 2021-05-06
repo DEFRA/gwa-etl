@@ -37,6 +37,7 @@ async function upsert (context, container, usersToUpsert) {
     for (const response of responses) {
       switch (response.statusCode) {
         case 200:
+        case 201:
           updatedUserSet.add(response?.resourceBody?.id)
           cost += response.requestCharge
           break
