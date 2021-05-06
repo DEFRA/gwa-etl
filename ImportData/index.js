@@ -2,7 +2,8 @@ const { CosmosClient } = require('@azure/cosmos')
 
 const connectionString = process.env.COSMOS_DB_CONNECTION_STRING
 const dbName = process.env.COSMOS_DB_NAME
-const sleepDuration = process.env.SLEEP_DURATION
+const importAttemptSleepDuration = process.env.IMPORT_ATTEMPT_SLEEP_DURATION
+const importBulkBatchSleepDuration = process.env.IMPORT_BULK_BATCH_SLEEP_DURATION
 const usersContainerName = process.env.COSMOS_DB_USERS_CONTAINER
 
 const client = new CosmosClient(connectionString)
@@ -46,7 +47,8 @@ async function upsert (context, container, usersToUpsert) {
           context.log.error(response)
       }
     }
-    await sleep(100)
+    context.log(`Processing next batch in ${importBulkBatchSleepDuration} milliseconds.`)
+    await sleep(importBulkBatchSleepDuration)
   }
   // Remove successful ids from users
   updatedUserSet.forEach(user => userMap.delete(user))
@@ -75,8 +77,8 @@ async function upsertUsers (context, container, allUsers) {
 
     if (userMap.size) {
       attempt++
-      context.log(`Making attempt ${attempt} in ${sleepDuration} milliseconds.`)
-      await sleep(sleepDuration)
+      context.log(`Making attempt ${attempt} in ${importAttemptSleepDuration} milliseconds.`)
+      await sleep(importAttemptSleepDuration)
     }
   } while (userMap.size && attempt <= 10)
 

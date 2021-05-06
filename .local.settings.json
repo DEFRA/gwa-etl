@@ -12,6 +12,7 @@
     "DATA_EXTRACT_CONTAINER": "data-extract",
     "DATA_IMPORT_CONTAINER": "data-import",
     "DATA_SOURCES_CONTAINER": "data-sources",
-    "SLEEP_DURATION": "1000"
+    "IMPORT_ATTEMPT_SLEEP_DURATION": "1000",
+    "IMPORT_BULK_BATCH_SLEEP_DURATION": "100"
   }
 }

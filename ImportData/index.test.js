@@ -94,6 +94,7 @@ describe('ImportData function', () => {
       `Users to import: ${usersToImport.length}.`,
       `Users already existing: ${existingUsers.length}.`,
       'Running bulk operation for users in batch group 1 to 100.',
+      `Processing next batch in ${testEnvVars.IMPORT_BULK_BATCH_SLEEP_DURATION} milliseconds.`,
       'Users updated successfully: 1\nUsers still to be updated: 0\nCost (RUs): 10.',
       'After 1 attempt(s), 0 user(s) are still to be updated.',
       'Total cost (RUs): 10.',
@@ -132,6 +133,7 @@ describe('ImportData function', () => {
       `Users to import: ${usersToImport.length}.`,
       `Users already existing: ${existingUsers.length}.`,
       'Running bulk operation for users in batch group 1 to 100.',
+      `Processing next batch in ${testEnvVars.IMPORT_BULK_BATCH_SLEEP_DURATION} milliseconds.`,
       'Users updated successfully: 1\nUsers still to be updated: 0\nCost (RUs): 10.',
       'After 1 attempt(s), 0 user(s) are still to be updated.',
       'Total cost (RUs): 10.',
@@ -177,6 +179,7 @@ describe('ImportData function', () => {
       `Users to import: ${usersToImport.length}.`,
       `Users already existing: ${existingUsers.length}.`,
       'Running bulk operation for users in batch group 1 to 100.',
+      `Processing next batch in ${testEnvVars.IMPORT_BULK_BATCH_SLEEP_DURATION} milliseconds.`,
       'Users updated successfully: 2\nUsers still to be updated: 0\nCost (RUs): 20.',
       'After 1 attempt(s), 0 user(s) are still to be updated.',
       'Total cost (RUs): 20.',
@@ -208,7 +211,7 @@ describe('ImportData function', () => {
     expect(bulkMock.mock.calls[0][0]).toHaveLength(100)
     expect(bulkMock.mock.calls[1][0]).toHaveLength(1)
     expect(context.log).toHaveBeenNthCalledWith(3, 'Running bulk operation for users in batch group 1 to 100.')
-    expect(context.log).toHaveBeenNthCalledWith(4, 'Running bulk operation for users in batch group 101 to 200.')
+    expect(context.log).toHaveBeenNthCalledWith(5, 'Running bulk operation for users in batch group 101 to 200.')
   })
 
   test('rate limited updates are retried 10 times', async () => {
@@ -243,15 +246,17 @@ describe('ImportData function', () => {
     expect(bulkMock.mock.calls[9][0]).toHaveLength(1)
 
     expect(context.log.mock.calls[2][0]).toEqual('Running bulk operation for users in batch group 1 to 100.')
-    expect(context.log.mock.calls[3][0]).toEqual('Users updated successfully: 1\nUsers still to be updated: 1\nCost (RUs): 10.')
+    expect(context.log.mock.calls[3][0]).toEqual(`Processing next batch in ${testEnvVars.IMPORT_BULK_BATCH_SLEEP_DURATION} milliseconds.`)
+    expect(context.log.mock.calls[4][0]).toEqual('Users updated successfully: 1\nUsers still to be updated: 1\nCost (RUs): 10.')
     for (let i = 0; i < 8; i++) {
-      expect(context.log.mock.calls[i * 3 + 4][0]).toEqual(`Making attempt ${i + 2} in ${testEnvVars.SLEEP_DURATION} milliseconds.`)
-      expect(context.log.mock.calls[i * 3 + 5][0]).toEqual('Running bulk operation for users in batch group 1 to 100.')
-      expect(context.log.mock.calls[i * 3 + 6][0]).toEqual('Users updated successfully: 0\nUsers still to be updated: 1\nCost (RUs): 0.')
+      expect(context.log.mock.calls[i * 4 + 5][0]).toEqual(`Making attempt ${i + 2} in ${testEnvVars.IMPORT_ATTEMPT_SLEEP_DURATION} milliseconds.`)
+      expect(context.log.mock.calls[i * 4 + 6][0]).toEqual('Running bulk operation for users in batch group 1 to 100.')
+      expect(context.log.mock.calls[i * 4 + 7][0]).toEqual(`Processing next batch in ${testEnvVars.IMPORT_BULK_BATCH_SLEEP_DURATION} milliseconds.`)
+      expect(context.log.mock.calls[i * 4 + 8][0]).toEqual('Users updated successfully: 0\nUsers still to be updated: 1\nCost (RUs): 0.')
     }
-    expect(context.log.mock.calls[30][0]).toEqual('Users updated successfully: 1\nUsers still to be updated: 0\nCost (RUs): 10.')
-    expect(context.log.mock.calls[31][0]).toEqual('After 10 attempt(s), 0 user(s) are still to be updated.')
-    expect(context.log.mock.calls[32][0]).toEqual('Total cost (RUs): 20.')
+    expect(context.log.mock.calls[40][0]).toEqual('Users updated successfully: 1\nUsers still to be updated: 0\nCost (RUs): 10.')
+    expect(context.log.mock.calls[41][0]).toEqual('After 10 attempt(s), 0 user(s) are still to be updated.')
+    expect(context.log.mock.calls[42][0]).toEqual('Total cost (RUs): 20.')
 
     expect(context.log.warn).toHaveBeenCalledTimes(9)
     expect(context.log.warn).toHaveBeenCalledWith(tooManyRequestsResponse)
