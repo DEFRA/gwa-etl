@@ -303,9 +303,7 @@ describe('ImportData function', () => {
     fetchAllMock.mockResolvedValueOnce({ resources: [] })
     bindUsersForImport(usersToImport)
     bulkMock
-      .mockResolvedValueOnce(
-        usersToImport.map(user => { return unhandldedResponse })
-      )
+      .mockResolvedValueOnce([unhandldedResponse])
       .mockResolvedValueOnce(
         usersToImport.map(user => { return { requestCharge: 10, resourceBody: { id: user.emailAddress }, statusCode: 200 } })
       )
