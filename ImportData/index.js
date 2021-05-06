@@ -2,6 +2,7 @@ const { CosmosClient } = require('@azure/cosmos')
 
 const connectionString = process.env.COSMOS_DB_CONNECTION_STRING
 const dbName = process.env.COSMOS_DB_NAME
+const sleepDuration = process.env.SLEEP_DURATION
 const usersContainerName = process.env.COSMOS_DB_USERS_CONTAINER
 
 const client = new CosmosClient(connectionString)
@@ -30,15 +31,19 @@ async function upsert (context, container, usersToUpsert) {
         resourceBody: user
       })
     }
-    // TODO: handle retries. if any of the response contain a 429, remove others and reprocess
-    const responses = await container.items.bulk(operations) //, { continueOnError: true })
+    const responses = await container.items.bulk(operations)
 
     for (const response of responses) {
-      if (response.statusCode === 429) {
-        context.log.warn(response)
-      } else if (response.statusCode === 200) {
-        updatedUserSet.add(response?.resourceBody?.id)
-        cost += response.requestCharge
+      switch (response.statusCode) {
+        case 200:
+          updatedUserSet.add(response?.resourceBody?.id)
+          cost += response.requestCharge
+          break
+        case 429:
+          context.log.warn(response)
+          break
+        default:
+          context.log.error(response)
       }
     }
     await sleep(100)
@@ -46,7 +51,7 @@ async function upsert (context, container, usersToUpsert) {
   // Remove successful ids from users
   updatedUserSet.forEach(user => userMap.delete(user))
 
-  context.log(`Users updated successfully: ${updatedUserSet.size}\nUsers still be to updated: ${userMap.size}\nCost (RUs): ${cost}.`)
+  context.log(`Users updated successfully: ${updatedUserSet.size}\nUsers still to be updated: ${userMap.size}\nCost (RUs): ${cost}.`)
 
   return {
     cost,
@@ -59,7 +64,6 @@ async function upsertUsers (context, container, allUsers) {
   const usersToUpsert = [...usersCreated, ...usersInactive, ...usersUpdated]
   let userMap = new Map(usersToUpsert.map(user => [user.id, user]))
 
-  const pause = 1000
   let attempt = 1
   let cost = 0
 
@@ -71,15 +75,14 @@ async function upsertUsers (context, container, allUsers) {
 
     if (userMap.size) {
       attempt++
-      context.log(`Making attempt ${attempt} in ${pause} milliseconds.`)
-      await sleep(pause)
+      context.log(`Making attempt ${attempt} in ${sleepDuration} milliseconds.`)
+      await sleep(sleepDuration)
     }
   } while (userMap.size && attempt <= 10)
 
   context.log(`After ${attempt} attempt(s), ${userMap.size} user(s) are still to be updated.`)
   context.log(`Total cost (RUs): ${cost}.`)
 
-  // TODO: uncomment this
   context.log(`${usersCreated.length} user(s) created: ${usersCreated.map(user => user.id)}.`)
   context.log(`${usersUpdated.length} user(s) updated: ${usersUpdated.map(user => user.id)}.`)
   context.log(`${usersInactive.length} user(s) inactive: ${usersInactive.map(user => user.id)}.`)

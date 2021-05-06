@@ -1,4 +1,5 @@
 const testEnvVars = require('../test/testEnvVars')
+const { generateUsersToImport } = require('../test/generateUsers')
 
 const inputBindingName = 'blobContents'
 
@@ -93,7 +94,7 @@ describe('ImportData function', () => {
       `Users to import: ${usersToImport.length}.`,
       `Users already existing: ${existingUsers.length}.`,
       'Running bulk operation for users in batch group 1 to 100.',
-      'Users updated successfully: 1\nUsers still be to updated: 0\nCost (RUs): 10.',
+      'Users updated successfully: 1\nUsers still to be updated: 0\nCost (RUs): 10.',
       'After 1 attempt(s), 0 user(s) are still to be updated.',
       'Total cost (RUs): 10.',
       '0 user(s) created: .',
@@ -131,7 +132,7 @@ describe('ImportData function', () => {
       `Users to import: ${usersToImport.length}.`,
       `Users already existing: ${existingUsers.length}.`,
       'Running bulk operation for users in batch group 1 to 100.',
-      'Users updated successfully: 1\nUsers still be to updated: 0\nCost (RUs): 10.',
+      'Users updated successfully: 1\nUsers still to be updated: 0\nCost (RUs): 10.',
       'After 1 attempt(s), 0 user(s) are still to be updated.',
       'Total cost (RUs): 10.',
       `1 user(s) created: ${usersToImport[0].emailAddress}.`,
@@ -176,7 +177,7 @@ describe('ImportData function', () => {
       `Users to import: ${usersToImport.length}.`,
       `Users already existing: ${existingUsers.length}.`,
       'Running bulk operation for users in batch group 1 to 100.',
-      'Users updated successfully: 2\nUsers still be to updated: 0\nCost (RUs): 20.',
+      'Users updated successfully: 2\nUsers still to be updated: 0\nCost (RUs): 20.',
       'After 1 attempt(s), 0 user(s) are still to be updated.',
       'Total cost (RUs): 20.',
       `1 user(s) created: ${usersToImport[0].emailAddress}.`,
@@ -185,12 +186,75 @@ describe('ImportData function', () => {
     ])
   })
 
-  // TODO
   test('users are updated in batches of 100', async () => {
+    const usersToImport = generateUsersToImport(101)
+    fetchAllMock.mockResolvedValueOnce({ resources: [] })
+    bindUsersForImport(usersToImport)
+    bulkMock
+      .mockResolvedValueOnce(
+        usersToImport.slice(0, 100).map(user => {
+          return { requestCharge: 10, resourceBody: { id: user.emailAddress }, statusCode: 200 }
+        })
+      )
+      .mockResolvedValueOnce(
+        usersToImport.slice(100).map(user => {
+          return { requestCharge: 10, resourceBody: { id: user.emailAddress }, statusCode: 200 }
+        })
+      )
+
+    await importData(context)
+
+    expect(bulkMock).toHaveBeenCalledTimes(2)
+    expect(bulkMock.mock.calls[0][0]).toHaveLength(100)
+    expect(bulkMock.mock.calls[1][0]).toHaveLength(1)
+    expect(context.log).toHaveBeenNthCalledWith(3, 'Running bulk operation for users in batch group 1 to 100.')
+    expect(context.log).toHaveBeenNthCalledWith(4, 'Running bulk operation for users in batch group 101 to 200.')
   })
 
-  // TODO
-  test('rate limited updates are retried', async () => {
+  test('rate limited updates are retried 10 times', async () => {
+    const tooManyRequestsResponse = { requestCharge: 0, retryAfterMilliseconds: 5, statusCode: 429 }
+    const usersToImport = [{ emailAddress: 'a@a.com' }, { emailAddress: 'b@b.com' }]
+    fetchAllMock.mockResolvedValueOnce({ resources: [] })
+    bindUsersForImport(usersToImport)
+    bulkMock
+      .mockResolvedValueOnce([{ requestCharge: 10, resourceBody: { id: usersToImport[0].emailAddress }, statusCode: 200 }, tooManyRequestsResponse])
+      .mockResolvedValueOnce([tooManyRequestsResponse])
+      .mockResolvedValueOnce([tooManyRequestsResponse])
+      .mockResolvedValueOnce([tooManyRequestsResponse])
+      .mockResolvedValueOnce([tooManyRequestsResponse])
+      .mockResolvedValueOnce([tooManyRequestsResponse])
+      .mockResolvedValueOnce([tooManyRequestsResponse])
+      .mockResolvedValueOnce([tooManyRequestsResponse])
+      .mockResolvedValueOnce([tooManyRequestsResponse])
+      .mockResolvedValueOnce([{ requestCharge: 10, resourceBody: { id: usersToImport[1].emailAddress }, statusCode: 200 }])
+
+    await importData(context)
+
+    expect(bulkMock).toHaveBeenCalledTimes(10)
+    expect(bulkMock.mock.calls[0][0]).toHaveLength(2)
+    expect(bulkMock.mock.calls[1][0]).toHaveLength(1)
+    expect(bulkMock.mock.calls[2][0]).toHaveLength(1)
+    expect(bulkMock.mock.calls[3][0]).toHaveLength(1)
+    expect(bulkMock.mock.calls[4][0]).toHaveLength(1)
+    expect(bulkMock.mock.calls[5][0]).toHaveLength(1)
+    expect(bulkMock.mock.calls[6][0]).toHaveLength(1)
+    expect(bulkMock.mock.calls[7][0]).toHaveLength(1)
+    expect(bulkMock.mock.calls[8][0]).toHaveLength(1)
+    expect(bulkMock.mock.calls[9][0]).toHaveLength(1)
+
+    expect(context.log.mock.calls[2][0]).toEqual('Running bulk operation for users in batch group 1 to 100.')
+    expect(context.log.mock.calls[3][0]).toEqual('Users updated successfully: 1\nUsers still to be updated: 1\nCost (RUs): 10.')
+    for (let i = 0; i < 8; i++) {
+      expect(context.log.mock.calls[i * 3 + 4][0]).toEqual(`Making attempt ${i + 2} in ${testEnvVars.SLEEP_DURATION} milliseconds.`)
+      expect(context.log.mock.calls[i * 3 + 5][0]).toEqual('Running bulk operation for users in batch group 1 to 100.')
+      expect(context.log.mock.calls[i * 3 + 6][0]).toEqual('Users updated successfully: 0\nUsers still to be updated: 1\nCost (RUs): 0.')
+    }
+    expect(context.log.mock.calls[30][0]).toEqual('Users updated successfully: 1\nUsers still to be updated: 0\nCost (RUs): 10.')
+    expect(context.log.mock.calls[31][0]).toEqual('After 10 attempt(s), 0 user(s) are still to be updated.')
+    expect(context.log.mock.calls[32][0]).toEqual('Total cost (RUs): 20.')
+
+    expect(context.log.warn).toHaveBeenCalledTimes(9)
+    expect(context.log.warn).toHaveBeenCalledWith(tooManyRequestsResponse)
   })
 
   test('users updated and created share the same import date and report correctly', async () => {
@@ -226,6 +290,28 @@ describe('ImportData function', () => {
         newProp: usersToImport[0].newProp
       })
     }]))
+  })
+
+  test('an error is logged when an update response contains an handled statusCode', async () => {
+    const usersToImport = [{ emailAddress: 'a@a.com' }]
+    const unhandldedResponse = { requestCharge: 0, resourceBody: { id: usersToImport[0].emailAddress }, statusCode: 409 }
+    fetchAllMock.mockResolvedValueOnce({ resources: [] })
+    bindUsersForImport(usersToImport)
+    bulkMock
+      .mockResolvedValueOnce(
+        usersToImport.map(user => { return unhandldedResponse })
+      )
+      .mockResolvedValueOnce(
+        usersToImport.map(user => { return { requestCharge: 10, resourceBody: { id: user.emailAddress }, statusCode: 200 } })
+      )
+
+    await importData(context)
+
+    expect(bulkMock).toHaveBeenCalledTimes(2)
+    expect(bulkMock.mock.calls[0][0]).toHaveLength(1)
+    expect(bulkMock.mock.calls[1][0]).toHaveLength(1)
+    expect(context.log.error).toHaveBeenCalledTimes(1)
+    expect(context.log.error).toHaveBeenCalledWith(unhandldedResponse)
   })
 
   test('an error is thrown (and logged) when an error occurs', async () => {
