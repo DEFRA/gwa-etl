@@ -6,10 +6,13 @@
     "AW_AUTH_HEADER": "",
     "AW_DOMAIN": "",
     "AW_TENANT_CODE": "",
-    "COSMOS_DB": "",
+    "COSMOS_DB_CONNECTION_STRING": "",
+    "COSMOS_DB_NAME": "gwa",
     "COSMOS_DB_USERS_CONTAINER": "users-local",
     "DATA_EXTRACT_CONTAINER": "data-extract",
     "DATA_IMPORT_CONTAINER": "data-import",
-    "DATA_SOURCES_CONTAINER": "data-sources"
+    "DATA_SOURCES_CONTAINER": "data-sources",
+    "IMPORT_ATTEMPT_SLEEP_DURATION": "1000",
+    "IMPORT_BULK_BATCH_SLEEP_DURATION": "100"
   }
 }
