@@ -1,0 +1,17 @@
+{
+  "bindings": [
+    {
+      "name": "myTimer",
+      "type": "timerTrigger",
+      "direction": "in",
+      "schedule": "0 0 9 * * 0"
+    },
+    {
+      "name": "aadUsers",
+      "type": "blob",
+      "direction": "out",
+      "path": "%DATA_EXTRACT_CONTAINER%/aad-users.json",
+      "connection": "AzureWebJobsStorage"
+    }
+  ]
+}
