@@ -16,7 +16,7 @@ function generateUsersWithId (count) {
     const id = uuid()
     users.push({
       id,
-      mail: `${id}@email.com`,
+      mail: `${id}@email.com`.toUpperCase(),
       givenName: id.slice(0, 8),
       surname: id.slice(9, 13),
       companyName: 'companyName',

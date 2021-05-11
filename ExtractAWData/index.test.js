@@ -69,9 +69,9 @@ describe('ExtractAWData function', () => {
 
     expect(context.bindings).toHaveProperty(outputBindingName)
     expect(context.bindings[outputBindingName]).toHaveLength(numberOfDevices)
-    const device = context.bindings[outputBindingName][0]
-    expect(device.emailAddress).toEqual(Devices[0].UserEmailAddress)
-    expect(device.phoneNumbers[0]).toEqual(Devices[0].PhoneNumber)
+    const users = context.bindings[outputBindingName][0]
+    expect(users.emailAddress).toEqual(Devices[0].UserEmailAddress.toLowerCase())
+    expect(users.phoneNumbers[0]).toEqual(Devices[0].PhoneNumber)
   })
 
   test('user data is only added when user has a UserEmailAddress', async () => {
@@ -86,10 +86,10 @@ describe('ExtractAWData function', () => {
     expect(context.bindings).toHaveProperty(outputBindingName)
     expect(context.bindings[outputBindingName]).toHaveLength(2)
     const user1 = context.bindings[outputBindingName][0]
-    expect(user1.emailAddress).toEqual(Devices[0].UserEmailAddress)
+    expect(user1.emailAddress).toEqual(Devices[0].UserEmailAddress.toLowerCase())
     expect(user1.phoneNumbers[0]).toEqual(Devices[0].PhoneNumber)
     const user2 = context.bindings[outputBindingName][1]
-    expect(user2.emailAddress).toEqual(Devices[2].UserEmailAddress)
+    expect(user2.emailAddress).toEqual(Devices[2].UserEmailAddress.toLowerCase())
     expect(user2.phoneNumbers[0]).toEqual(undefined)
   })
 
@@ -105,12 +105,12 @@ describe('ExtractAWData function', () => {
 
     expect(context.bindings[outputBindingName]).toHaveLength(2)
     const user1 = context.bindings[outputBindingName][0]
-    expect(user1.emailAddress).toEqual(Devices[0].UserEmailAddress)
+    expect(user1.emailAddress).toEqual(Devices[0].UserEmailAddress.toLowerCase())
     expect(user1.phoneNumbers).toHaveLength(2)
     expect(user1.phoneNumbers[0]).toEqual(Devices[0].PhoneNumber)
     expect(user1.phoneNumbers[1]).toEqual(Devices[2].PhoneNumber)
     const user2 = context.bindings[outputBindingName][1]
-    expect(user2.emailAddress).toEqual(Devices[1].UserEmailAddress)
+    expect(user2.emailAddress).toEqual(Devices[1].UserEmailAddress.toLowerCase())
     expect(user2.phoneNumbers).toHaveLength(1)
     expect(user2.phoneNumbers[0]).toEqual(Devices[1].PhoneNumber)
   })

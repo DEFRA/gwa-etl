@@ -36,7 +36,8 @@ module.exports = async function (context) {
       for (let i = 0; i < resDeviceCount; i++) {
         deviceCount++
         const device = Devices[i]
-        const { ModelId: { Id: { Value } }, PhoneNumber: phoneNumber, UserEmailAddress: emailAddress } = device
+        const { ModelId: { Id: { Value } }, PhoneNumber: phoneNumber, UserEmailAddress } = device
+        const emailAddress = UserEmailAddress?.toLowerCase()
 
         if (Value === 2) {
           iPadCount++

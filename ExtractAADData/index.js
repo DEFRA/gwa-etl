@@ -39,7 +39,7 @@ module.exports = async function (context) {
       const data = await response.json()
       const users = data.value
       users.forEach(user => {
-        user.emailAddress = user.mail
+        user.emailAddress = user.mail.toLowerCase()
         delete user.mail
       })
       processedUsers = processedUsers.concat(users)

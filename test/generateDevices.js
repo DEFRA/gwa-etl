@@ -6,7 +6,7 @@ function generate (count, modelId) {
     devices.push({
       ModelId: { Id: { Value: modelId }, Name },
       PhoneNumber: `07${modelId}${numberBase++}`,
-      UserEmailAddress: `user${i}-${Name}@email.com`
+      UserEmailAddress: `user${i}-${Name}@email.com`.toUpperCase()
     })
   }
   return devices
