@@ -1,6 +1,9 @@
 const envVars = require('./test/testEnvVars')
 
 process.env.AzureWebJobsStorage = envVars.AzureWebJobsStorage
+process.env.AAD_CLIENT_ID = envVars.AAD_CLIENT_ID
+process.env.AAD_CLIENT_SECRET = envVars.AAD_CLIENT_SECRET
+process.env.AAD_TENANT_ID = envVars.AAD_TENANT_ID
 process.env.AW_AUTH_HEADER = envVars.AW_AUTH_HEADER
 process.env.AW_DOMAIN = envVars.AW_DOMAIN
 process.env.AW_TENANT_CODE = envVars.AW_TENANT_CODE

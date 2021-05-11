@@ -15,11 +15,15 @@
 > for loading various sources of user data into Cosmos DB.
 
 The app extracts data from
-[AirWatch](https://www.vmware.com/products/workspace-one.html) before combining
-it with data from
+[AirWatch](https://www.vmware.com/products/workspace-one.html) and
 [Azure Active Directory](https://azure.microsoft.com/en-gb/services/active-directory/)
-(the data could be from anywhere as long as the format was 'correct'). The
-combined data is then imported it into Cosmos DB.
+via [Microsoft Graph](https://docs.microsoft.com/en-us/graph/overview)
+before combining the datasets into one for Defra. This dataset is then combined
+with other datasets (this functionality is yet to be implemented and will allow
+other organisations to add members to the system - the data could be from
+anywhere as long as the format was 'correct').
+
+When all datasets have been combined it is imported into Cosmos DB.
 
 ## Functions
 
@@ -27,6 +31,7 @@ The app is made up of a number of functions, each function is explained in more
 detail in its' own README:
 
 * [ExtractAWData](ExtractAWData/README.md)
+* [ExtractAADData](ExtractAADData/README.md)
 * [CombineUserData](CombineUserData/README.md)
 * [CombineDataSources](CombineDataSources/README.md)
 * [ImportData](ImportData/README.md)
