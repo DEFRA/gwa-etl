@@ -121,7 +121,7 @@ describe('ExtractAADData function', () => {
     context.bindings[outputBindingName].forEach((user, i) => {
       expect(user).not.toHaveProperty('mail')
       expect(user.id).toEqual(users[i].id)
-      expect(user.emailAddress).toEqual(users[i].mail)
+      expect(user.emailAddress).toEqual(users[i].mail.toLowerCase())
       expect(user.givenName).toEqual(users[i].givenName)
       expect(user.surname).toEqual(users[i].surname)
       expect(user.companyName).toEqual(users[i].companyName)
