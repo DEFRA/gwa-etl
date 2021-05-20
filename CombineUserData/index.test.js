@@ -16,9 +16,9 @@ describe('CombineUserData function', () => {
   const userData = [{ emailAddress: 'a@a.com' }]
   const triggerFileContents = Buffer.from(JSON.stringify(userData))
 
+  let ContainerClient
   let combineUserData
   let combineData
-  let ContainerClient
   let getBlobContents
 
   beforeEach(() => {
@@ -69,9 +69,9 @@ describe('CombineUserData function', () => {
     expect(getBlobContents).toHaveBeenCalledWith(ContainerClient.mock.instances[0], awFilename)
   })
 
-  test('the combining of data is attached to output binding', async () => {
-    const combinedData = []
-    const retrievedFileContents = []
+  test('the transformed data is attached to output binding', async () => {
+    const combinedData = [{ data: 'combinedData' }]
+    const retrievedFileContents = [{ data: 'fileContents' }]
     combineData.mockImplementation(() => { return combinedData })
     getBlobContents.mockImplementation(() => { return retrievedFileContents })
     context.bindingData[blobNameBinding] = aadFilename
