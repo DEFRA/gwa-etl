@@ -1,3 +1,4 @@
+const { v4: uuid } = require('uuid')
 const inputBlobBindingName = 'blobContents'
 const outputBindingName = 'users'
 
@@ -11,6 +12,7 @@ describe('CombineDataSources function', () => {
 
   test('incoming file contents are saved to output binding for valid input', async () => {
     const inputFileContents = [{
+      id: uuid(),
       companyName: 'companyName',
       officeLocation: 'officeLocation',
       surname: 'surname',

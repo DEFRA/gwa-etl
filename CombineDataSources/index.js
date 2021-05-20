@@ -1,6 +1,7 @@
 const Joi = require('joi')
 
 const schema = Joi.object({
+  id: Joi.string().guid().required(),
   companyName: Joi.string().required(),
   officeLocation: Joi.string().required(),
   emailAddress: Joi.string().email().required(),
@@ -26,7 +27,7 @@ module.exports = async function (context) {
     })
 
     if (errors.length > 0) {
-      context.log.error(`Validation failures: ${errors}.`)
+      context.log.error(`Validation failures: ${JSON.stringify(errors)}.`)
       throw new Error('Validation failed')
     }
 
