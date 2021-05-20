@@ -46,7 +46,9 @@ module.exports = async function (context) {
             let user = users.get(emailAddress)
             if (phoneNumber) {
               if (user) {
-                user.phoneNumbers.push(phoneNumber)
+                if (!user.phoneNumbers.find(x => x === phoneNumber)) {
+                  user.phoneNumbers.push(phoneNumber)
+                }
               } else {
                 user = { emailAddress, phoneNumbers: [phoneNumber] }
               }

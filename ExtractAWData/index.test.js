@@ -115,6 +115,20 @@ describe('ExtractAWData function', () => {
     expect(user2.phoneNumbers[0]).toEqual(Devices[1].PhoneNumber)
   })
 
+  test('users with multiple devices with the same number result in a single number', async () => {
+    const device1 = { ModelId: { Id: { Value: 1 } }, PhoneNumber: '07000111222', UserEmailAddress: 'a@a.com' }
+    const device2 = { ModelId: { Id: { Value: 1 } }, PhoneNumber: '07000111222', UserEmailAddress: 'a@a.com' }
+    const expectedResponse = { Devices: [device1, device2], Page: 0, PageSize, Total: 0 }
+    mockFetchResolvedJsonValueOnce(expectedResponse)
+
+    await extractAWData(context)
+
+    expect(context.bindings[outputBindingName]).toHaveLength(1)
+    const user1 = context.bindings[outputBindingName][0]
+    expect(user1.phoneNumbers).toHaveLength(1)
+    expect(user1.phoneNumbers[0]).toEqual(device1.PhoneNumber)
+  })
+
   test('do not export iPad devices', async () => {
     const iPhones = generateIPhones(2)
     const Devices = [...iPhones, ...generateIPads(2)]
