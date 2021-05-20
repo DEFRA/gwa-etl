@@ -5,8 +5,19 @@ describe('CombineDataSources function', () => {
   const combineDataSources = require('.')
   const context = require('../test/defaultContext')
 
-  test('incoming file contents are saved to output binding', async () => {
-    const inputFileContents = [{ emailAddress: 'a@a.com' }]
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
+  test('incoming file contents are saved to output binding for valid input', async () => {
+    const inputFileContents = [{
+      companyName: 'companyName',
+      officeLocation: 'officeLocation',
+      surname: 'surname',
+      givenName: 'givenName',
+      phoneNumbers: ['07000111222'],
+      emailAddress: 'a@a.com'
+    }]
     context.bindings[inputBlobBindingName] = Buffer.from(JSON.stringify(inputFileContents))
 
     await combineDataSources(context)
@@ -15,11 +26,21 @@ describe('CombineDataSources function', () => {
     expect(context.bindings[outputBindingName]).toEqual(inputFileContents)
   })
 
+  test('an error is thrown when the input is not valid against the schema', async () => {
+    const inputFileContents = [{ emailAddress: 'a@a.com' }]
+    context.bindings[inputBlobBindingName] = Buffer.from(JSON.stringify(inputFileContents))
+
+    await expect(combineDataSources(context)).rejects.toThrow(Error)
+
+    expect(context.log.error).toHaveBeenCalledTimes(2)
+  })
+
   test('an error is thrown (and logged) when an error occurs', async () => {
     // Doesn't matter what causes the error, just that an error is thrown
     context.bindings = null
 
     await expect(combineDataSources(context)).rejects.toThrow(Error)
+
     expect(context.log.error).toHaveBeenCalledTimes(1)
   })
 })
