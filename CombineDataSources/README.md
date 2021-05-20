@@ -8,10 +8,11 @@
 The function triggers on files in blob storage containing the combined dataset
 from [CombineUserData](../CombineUserData) and other sources (TBD).
 
-The data in the file is checked against a schema to ensure it is valid and
-should be moved to the next stage. If the validation fails, an error will be
-thrown with the validation errors being logged. The throwing of the error will
-cause the file to fail processing.
+Each user in the data is checked against a schema to ensure it is valid and
+should be moved to the next stage. If the validation fails the user is not
+eligible and will be added to an `error-user.json` file for later inspection.
+Users that pass validation will be uploaded to the next stage in
+`all-users.json`.
 
 ## Note
 

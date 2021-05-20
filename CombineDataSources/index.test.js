@@ -1,6 +1,8 @@
 const { v4: uuid } = require('uuid')
+
 const inputBlobBindingName = 'blobContents'
-const outputBindingName = 'users'
+const errorUsersOutputBindingName = 'errorUsers'
+const validUsersOutputBindingName = 'validUsers'
 
 describe('CombineDataSources function', () => {
   const combineDataSources = require('.')
@@ -10,7 +12,7 @@ describe('CombineDataSources function', () => {
     jest.clearAllMocks()
   })
 
-  test('incoming file contents are saved to output binding for valid input', async () => {
+  test('users are saved to valid users output binding when they are valid input', async () => {
     const inputFileContents = [{
       id: uuid(),
       companyName: 'companyName',
@@ -24,17 +26,22 @@ describe('CombineDataSources function', () => {
 
     await combineDataSources(context)
 
-    expect(context.bindings).toHaveProperty(outputBindingName)
-    expect(context.bindings[outputBindingName]).toEqual(inputFileContents)
+    expect(context.bindings).toHaveProperty(validUsersOutputBindingName)
+    expect(context.bindings[validUsersOutputBindingName]).toEqual(inputFileContents)
+    expect(context.bindings).toHaveProperty(errorUsersOutputBindingName)
+    expect(context.bindings[errorUsersOutputBindingName]).toHaveLength(0)
   })
 
-  test('an error is thrown when the input is not valid against the schema', async () => {
+  test('users are saved to error users output binding when they are not valid input', async () => {
     const inputFileContents = [{ emailAddress: 'a@a.com' }]
     context.bindings[inputBlobBindingName] = Buffer.from(JSON.stringify(inputFileContents))
 
-    await expect(combineDataSources(context)).rejects.toThrow(Error)
+    await combineDataSources(context)
 
-    expect(context.log.error).toHaveBeenCalledTimes(2)
+    expect(context.bindings).toHaveProperty(errorUsersOutputBindingName)
+    expect(context.bindings[errorUsersOutputBindingName]).toHaveLength(1)
+    expect(context.bindings).toHaveProperty(validUsersOutputBindingName)
+    expect(context.bindings[validUsersOutputBindingName]).toHaveLength(0)
   })
 
   test('an error is thrown (and logged) when an error occurs', async () => {
@@ -49,7 +56,7 @@ describe('CombineDataSources function', () => {
 
 describe('CombineDataSources bindings', () => {
   const { bindings: functionBindings } = require('./function')
-  const { allUsersFilename, internalUsersFilename } = require('../lib/config')
+  const { errorUsersFilename, internalUsersFilename, validUsersFilename } = require('../lib/config')
   const testEnvVars = require('../test/testEnvVars')
 
   test('blobTrigger input binding is correct', () => {
@@ -62,13 +69,18 @@ describe('CombineDataSources bindings', () => {
     expect(binding.path).toEqual(`%${testEnvVars.DATA_SOURCES_CONTAINER}%/${internalUsersFilename}`)
   })
 
-  test('output binding is correct', () => {
+  test('output bindings are correct', () => {
     const bindings = functionBindings.filter((binding) => binding.direction === 'out')
-    expect(bindings).toHaveLength(1)
+    expect(bindings).toHaveLength(2)
 
-    const binding = bindings[0]
-    expect(binding.name).toEqual(outputBindingName)
-    expect(binding.type).toEqual('blob')
-    expect(binding.path).toEqual(`%${testEnvVars.DATA_IMPORT_CONTAINER}%/${allUsersFilename}`)
+    const validUsersBinding = bindings[0]
+    expect(validUsersBinding.name).toEqual(validUsersOutputBindingName)
+    expect(validUsersBinding.type).toEqual('blob')
+    expect(validUsersBinding.path).toEqual(`%${testEnvVars.DATA_IMPORT_CONTAINER}%/${validUsersFilename}`)
+
+    const errorUsersBinding = bindings[1]
+    expect(errorUsersBinding.name).toEqual(errorUsersOutputBindingName)
+    expect(errorUsersBinding.type).toEqual('blob')
+    expect(errorUsersBinding.path).toEqual(`%${testEnvVars.DATA_IMPORT_CONTAINER}%/${errorUsersFilename}`)
   })
 })

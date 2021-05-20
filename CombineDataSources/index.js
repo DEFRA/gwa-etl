@@ -12,26 +12,22 @@ const schema = Joi.object({
 
 module.exports = async function (context) {
   try {
-    // Copy file contents
     const { blobContents } = context.bindings
 
     const users = JSON.parse(blobContents)
 
-    const errors = []
-
-    users.forEach(user => {
+    const errorUsers = []
+    const validUsers = users.filter(user => {
       const { error } = schema.validate(user)
       if (error) {
-        errors.push({ error, user })
+        errorUsers.push({ error, user })
+        return false
       }
+      return true
     })
 
-    if (errors.length > 0) {
-      context.log.error(`Validation failures: ${JSON.stringify(errors)}.`)
-      throw new Error('Validation failed')
-    }
-
-    context.bindings.users = users
+    context.bindings.validUsers = validUsers
+    context.bindings.errorUsers = errorUsers
   } catch (e) {
     context.log.error(e)
     // Throwing an error ensures the built-in retry will kick in
