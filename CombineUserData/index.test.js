@@ -34,8 +34,6 @@ describe('CombineUserData function', () => {
   })
 
   test('clients are created when module is imported, with correct env vars', async () => {
-    await combineUserData(context)
-
     expect(ContainerClient).toHaveBeenCalledTimes(1)
     expect(ContainerClient).toHaveBeenCalledWith(testEnvVars.AzureWebJobsStorage, testEnvVars.DATA_EXTRACT_CONTAINER)
   })
