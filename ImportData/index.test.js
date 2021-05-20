@@ -329,7 +329,7 @@ describe('ImportData function', () => {
 describe('ImportData bindings', () => {
   const { bindings: functionBindings } = require('./function')
 
-  const { allUsersFilename } = require('../lib/config')
+  const { validUsersFilename } = require('../lib/config')
 
   test('blobTrigger input binding is correct', () => {
     const bindings = functionBindings.filter((binding) => binding.direction === 'in')
@@ -339,7 +339,7 @@ describe('ImportData bindings', () => {
     const binding = bindings[0]
     expect(binding.name).toEqual(inputBindingName)
     expect(binding.type).toEqual('blobTrigger')
-    expect(binding.path).toEqual(`%${testEnvVars.DATA_IMPORT_CONTAINER}%/${allUsersFilename}`)
+    expect(binding.path).toEqual(`%${testEnvVars.DATA_IMPORT_CONTAINER}%/${validUsersFilename}`)
     expect(binding.connection).toEqual('AzureWebJobsStorage')
   })
 })
