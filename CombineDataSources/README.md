@@ -16,10 +16,11 @@ Users that pass validation will be uploaded to the next stage in
 
 ## Note
 
-Currently this function just copies and validates the data against the schema
+Currently this function copies and validates the data against the schema
 for the single file from the combining of AW and AAD data into blob storage
 that will trigger the execution of [ImportData](../ImportData).
 
-The reason the function exists is to make it easier in future to add the code
-to combine all of the files in storage before exporting the data into a file
-that will eventually be imported into the database.
+Future developments are likely to include the ability for external data files
+to be uploaded which would then be combined within this function. When (if)
+that time comes it _should_ be a case of concatenating all of the files in the
+container.
