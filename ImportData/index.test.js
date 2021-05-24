@@ -9,6 +9,7 @@ describe('ImportData function', () => {
   Date.now = jest.fn(() => importDate)
 
   let importData
+  let mapPhoneNumbers
   let CosmosClient
   let bulkMock
   let containerMock
@@ -25,6 +26,9 @@ describe('ImportData function', () => {
 
     CosmosClient = require('@azure/cosmos').CosmosClient
     jest.mock('@azure/cosmos')
+    mapPhoneNumbers = require('../lib/mapPhoneNumbers')
+    jest.mock('../lib/mapPhoneNumbers')
+    mapPhoneNumbers.mockReturnValue([])
 
     bulkMock = jest.fn()
     fetchAllMock = jest.fn()
@@ -104,7 +108,7 @@ describe('ImportData function', () => {
     ])
   })
 
-  test('an item to import with no existing record is created (joiners)', async () => {
+  test('an item to import with no existing record is created (joiners) with correct schema', async () => {
     const existingUsers = []
     fetchAllMock.mockResolvedValueOnce({ resources: existingUsers })
     const usersToImport = [{ emailAddress: 'a@a.com', newProp: 'newProp', sharedProp: 'importUser' }]
@@ -112,6 +116,8 @@ describe('ImportData function', () => {
     bulkMock.mockResolvedValueOnce([
       { requestCharge: 10, resourceBody: { id: usersToImport[0].emailAddress }, statusCode: 201 }
     ])
+    const mappedPhoneNumbers = [{ data: 'from-phonenumber-mock' }]
+    mapPhoneNumbers.mockReturnValue(mappedPhoneNumbers)
 
     await importData(context)
 
@@ -129,6 +135,10 @@ describe('ImportData function', () => {
         sharedProp: usersToImport[0].sharedProp
       })
     }]))
+    expect(mapPhoneNumbers).toHaveBeenCalledTimes(1)
+    expect(mapPhoneNumbers).toHaveBeenCalledWith(expect.objectContaining({
+      id: usersToImport[0].emailAddress
+    }))
     expectLoggingToBeCorrect([
       `Users to import: ${usersToImport.length}.`,
       `Users already existing: ${existingUsers.length}.`,
