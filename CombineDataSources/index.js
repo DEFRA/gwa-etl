@@ -3,7 +3,7 @@ const Joi = require('joi')
 const schema = Joi.object({
   id: Joi.string().guid().required(),
   companyName: Joi.string().required(),
-  officeLocation: Joi.string().required(),
+  officeLocation: Joi.string().pattern(/^[A-Z]{3}:[a-zA-Z0-9-]+$/).required(),
   emailAddress: Joi.string().email().required(),
   surname: Joi.string().required(),
   givenName: Joi.string().required(),

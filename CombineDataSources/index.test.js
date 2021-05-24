@@ -7,21 +7,22 @@ const validUsersOutputBindingName = 'validUsers'
 describe('CombineDataSources function', () => {
   const combineDataSources = require('.')
   const context = require('../test/defaultContext')
+  const validInput = {
+    id: uuid(),
+    companyName: 'companyName',
+    officeLocation: 'VLD:validOfficeLocation-1-99',
+    surname: 'surname',
+    givenName: 'givenName',
+    phoneNumbers: ['07000111222'],
+    emailAddress: 'a@a.com'
+  }
 
   beforeEach(() => {
     jest.clearAllMocks()
   })
 
   test('users are saved to valid users output binding when they are valid input', async () => {
-    const inputFileContents = [{
-      id: uuid(),
-      companyName: 'companyName',
-      officeLocation: 'officeLocation',
-      surname: 'surname',
-      givenName: 'givenName',
-      phoneNumbers: ['07000111222'],
-      emailAddress: 'a@a.com'
-    }]
+    const inputFileContents = [validInput]
     context.bindings[inputBlobBindingName] = Buffer.from(JSON.stringify(inputFileContents))
 
     await combineDataSources(context)
@@ -32,8 +33,36 @@ describe('CombineDataSources function', () => {
     expect(context.bindings[errorUsersOutputBindingName]).toHaveLength(0)
   })
 
-  test('users are saved to error users output binding when they are not valid input', async () => {
-    const inputFileContents = [{ emailAddress: 'a@a.com' }]
+  test.each([
+    ['id'],
+    ['companyName'],
+    ['officeLocation'],
+    ['surname'],
+    ['givenName'],
+    ['phoneNumbers'],
+    ['emailAddress']
+  ])('users are saved to error users output binding when they are not valid input - missing property (%s)', async (property) => {
+    const input = { ...validInput }
+    delete input[property]
+    const inputFileContents = [input]
+    context.bindings[inputBlobBindingName] = Buffer.from(JSON.stringify(inputFileContents))
+
+    await combineDataSources(context)
+
+    expect(context.bindings).toHaveProperty(errorUsersOutputBindingName)
+    expect(context.bindings[errorUsersOutputBindingName]).toHaveLength(1)
+    expect(context.bindings).toHaveProperty(validUsersOutputBindingName)
+    expect(context.bindings[validUsersOutputBindingName]).toHaveLength(0)
+  })
+
+  test.each([
+    ['emailAddress', 'not-an-email'],
+    ['officeLocation', 'INCORRECT:format']
+  ])('users are saved to error users output binding when they are not valid input - incorrect format property (%s)', async (property, value) => {
+    const input = { ...validInput }
+    input[property] = value
+    console.log('input', input)
+    const inputFileContents = [input]
     context.bindings[inputBlobBindingName] = Buffer.from(JSON.stringify(inputFileContents))
 
     await combineDataSources(context)
