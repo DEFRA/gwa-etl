@@ -13,6 +13,7 @@ const client = new CosmosClient(connectionString)
 const db = client.database(dbName)
 const refDataContainer = db.container(refDataContainerName)
 const officeLocationMapDocumentId = 'standardisedOfficeLocationMap'
+const unmappedOfficeCode = 'UNM:Unmapped'
 
 const cca = new msal.ConfidentialClientApplication({
   auth: {
@@ -28,7 +29,7 @@ module.exports = async function (context) {
     if (!refData) {
       throw new Error(`No reference data retrieved for ${officeLocationMapDocumentId}.`)
     }
-    const officeLocationMap = new Map(refData.data.map(ol => [ol.originalOfficeLocation, ol.officeCode]))
+    const officeLocationMap = new Map(refData.data.map(ol => [ol.originalOfficeLocation, { officeCode: ol.officeCode, officeLocation: ol.officeLocation }]))
 
     const clientCredentialRequest = { scopes: ['https://graph.microsoft.com/.default'] }
     const authResult = await cca.acquireTokenByClientCredential(clientCredentialRequest)
@@ -54,7 +55,9 @@ module.exports = async function (context) {
       users.forEach(user => {
         user.emailAddress = user.mail.toLowerCase()
         delete user.mail
-        user.officeLocation = officeLocationMap.get(user.officeLocation) ?? 'UNM:Unmapped'
+        const office = officeLocationMap.get(user.officeLocation)
+        user.officeLocation = office?.officeLocation ?? unmappedOfficeCode.slice(4)
+        user.officeCode = office?.officeCode ?? unmappedOfficeCode
       })
       processedUsers = processedUsers.concat(users)
       url = data['@odata.nextLink']

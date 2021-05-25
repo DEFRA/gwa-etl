@@ -131,7 +131,7 @@ describe('ExtractAADData function', () => {
     expect(context.log).toHaveBeenNthCalledWith(5, `Data extract from AAD is complete.\n${users.length} user(s) have been processed.`)
   })
 
-  test('user data is bound to correct output binding', async () => {
+  test('user data is correct and bound to output binding', async () => {
     const numberOfUsers = 100
     const users = generateUsersWithId(numberOfUsers)
     const expectedResponse = { value: JSON.parse(JSON.stringify(users)) }
@@ -148,16 +148,18 @@ describe('ExtractAADData function', () => {
       expect(user.givenName).toEqual(users[i].givenName)
       expect(user.surname).toEqual(users[i].surname)
       expect(user.companyName).toEqual(users[i].companyName)
-      expect(user.officeLocation).toEqual('UNM:Unmapped')
+      expect(user.officeCode).toEqual('UNM:Unmapped')
+      expect(user.officeLocation).toEqual('Unmapped')
     })
   })
 
   test('request to Cosmos DB is made and the data for mapping offices correct', async () => {
-    const officeCode = 'NEW:office-code-here'
+    const officeLocation = 'office location somewhere'
+    const officeCode = 'NEW:office-location-somewhere'
     const users = generateUsersWithId(1)
     const expectedResponse = { value: users }
     mockFetchResolvedJsonValueOnce(expectedResponse)
-    readMock = jest.fn().mockResolvedValueOnce({ resource: { data: [{ originalOfficeLocation: users[0].officeLocation, officeCode }] } })
+    readMock = jest.fn().mockResolvedValueOnce({ resource: { data: [{ originalOfficeLocation: users[0].officeLocation, officeCode, officeLocation }] } })
 
     await extractAADData(context)
 
@@ -167,7 +169,8 @@ describe('ExtractAADData function', () => {
     expect(context.bindings).toHaveProperty(outputBindingName)
     expect(context.bindings[outputBindingName]).toHaveLength(1)
     expect(context.bindings[outputBindingName][0]).toHaveProperty('officeLocation')
-    expect(context.bindings[outputBindingName][0].officeLocation).toEqual(officeCode)
+    expect(context.bindings[outputBindingName][0].officeCode).toEqual(officeCode)
+    expect(context.bindings[outputBindingName][0].officeLocation).toEqual(officeLocation)
   })
 
   test('an error is thrown (and logged) when an error occurs', async () => {
