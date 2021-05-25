@@ -1,0 +1,15 @@
+#!/usr/bin/env sh
+if [ -z "$1" ]; then
+  echo "Please enter the name of a function you would like to run. Options are:
+  - CombineDataSources
+  - CombineUserData
+  - ExtractAADData
+  - ExtractAWData
+  - ImportData"
+  exit 1
+fi
+
+echo "Going to run function - $1"
+curl --location --request POST "http://localhost:7071/admin/functions/$1" \
+  --header 'Content-Type: application/json' \
+  --data-raw '{ "input": "test"}'
