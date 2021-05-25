@@ -21,6 +21,13 @@ return only users with `accountEnabled = true` and `mail != null`.
 Only properties relevant for filtering the message sending i.e.
 `officeLocation`, `companyName` and `mail` will be saved along with the
 `givenName` and `surname` to provide a better experience for the user.
+`officeLocation` is mapped to a 'clean' subset of the raw office locations
+including an area code. An example is a raw `officeLocation` of
+`1 long lane, not a real address` would be mapped to `LDN:1-Long-Lane` where
+`LDN` is an area code that would probably represent `London` (all of these are
+made up in this example). The key is the format of a three letter area code
+followed by a colon followed by a clean office location with spaces that have
+been replaced with hyphens (`-`).
 
 ## Notes
 
