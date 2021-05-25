@@ -24,12 +24,11 @@ const cca = new msal.ConfidentialClientApplication({
 
 module.exports = async function (context) {
   try {
-    const response = await refDataContainer.item(officeLocationMapDocumentId, officeLocationMapDocumentId).read()
-    const refData = response.resource
+    const refData = (await refDataContainer.item(officeLocationMapDocumentId, officeLocationMapDocumentId).read())?.resource
     if (!refData) {
       throw new Error(`No reference data retrieved for ${officeLocationMapDocumentId}.`)
     }
-    const officeLocationMap = new Map(refData.data.map(ol => { return [ol.originalOfficeLocation, ol.officeCode] }))
+    const officeLocationMap = new Map(refData.data.map(ol => [ol.originalOfficeLocation, ol.officeCode]))
 
     const clientCredentialRequest = { scopes: ['https://graph.microsoft.com/.default'] }
     const authResult = await cca.acquireTokenByClientCredential(clientCredentialRequest)
