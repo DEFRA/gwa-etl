@@ -1,4 +1,5 @@
 const { CosmosClient } = require('@azure/cosmos')
+const mapPhoneNumbers = require('../lib/mapPhoneNumbers')
 
 const connectionString = process.env.COSMOS_DB_CONNECTION_STRING
 const dbName = process.env.COSMOS_DB_NAME
@@ -91,7 +92,7 @@ async function upsertUsers (context, container, allUsers) {
   context.log(`${usersInactive.length} user(s) inactive: ${usersInactive.map(user => user.id)}.`)
 }
 
-async function categoriseUsers (usersToImport, existingUsers) {
+function categoriseUsers (usersToImport, existingUsers) {
   const existingUsersMap = new Map(existingUsers.map(user => [user.id, user]))
   const usersCreated = []
   const usersUpdated = []
@@ -110,6 +111,7 @@ async function categoriseUsers (usersToImport, existingUsers) {
       usersUpdated.push({ ...existingUser, ...user })
       existingUsersMap.delete(emailAddress)
     } else {
+      user.phoneNumbers = mapPhoneNumbers(user)
       usersCreated.push(user)
     }
   }
@@ -148,7 +150,7 @@ module.exports = async function (context) {
     const existingUsers = await getExistingUsers(usersContainer)
     context.log(`Users already existing: ${existingUsers.length}.`)
 
-    const users = await categoriseUsers(usersToImport, existingUsers)
+    const users = categoriseUsers(usersToImport, existingUsers)
 
     await upsertUsers(context, usersContainer, users)
   } catch (e) {

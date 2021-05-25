@@ -8,10 +8,17 @@
       "connection": "AzureWebJobsStorage"
     },
     {
-      "name": "users",
+      "name": "validUsers",
       "type": "blob",
       "direction": "out",
-      "path": "%DATA_IMPORT_CONTAINER%/all-users.json",
+      "path": "%DATA_IMPORT_CONTAINER%/valid-users.json",
+      "connection": "AzureWebJobsStorage"
+    },
+    {
+      "name": "errorUsers",
+      "type": "blob",
+      "direction": "out",
+      "path": "%DATA_IMPORT_CONTAINER%/error-users.json",
       "connection": "AzureWebJobsStorage"
     }
   ]
