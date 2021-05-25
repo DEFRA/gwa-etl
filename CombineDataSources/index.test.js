@@ -61,7 +61,6 @@ describe('CombineDataSources function', () => {
   ])('users are saved to error users output binding when they are not valid input - incorrect format property (%s)', async (property, value) => {
     const input = { ...validInput }
     input[property] = value
-    console.log('input', input)
     const inputFileContents = [input]
     context.bindings[inputBlobBindingName] = Buffer.from(JSON.stringify(inputFileContents))
 
