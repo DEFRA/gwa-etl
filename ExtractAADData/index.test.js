@@ -24,12 +24,17 @@ describe('ExtractAADData function', () => {
     fetch.mockResolvedValueOnce({ json: async () => { return val } })
   }
 
+  let acquireTokenMock
+  let containerMock
+  let CosmosClient
   let extractAADData
   let fetch
+  let itemMock
   let msal
-  let acquireTokenMock
+  let readMock
   const accessTokenValue = 'access-token'
   const defaultTokenScopes = { scopes: ['https://graph.microsoft.com/.default'] }
+  const officeLocationMapDocumentId = 'standardisedOfficeLocationMap'
 
   beforeEach(() => {
     jest.clearAllMocks()
@@ -39,11 +44,19 @@ describe('ExtractAADData function', () => {
     jest.mock('node-fetch')
     msal = require('@azure/msal-node')
     jest.mock('@azure/msal-node')
+    CosmosClient = require('@azure/cosmos').CosmosClient
+    jest.mock('@azure/cosmos')
 
     acquireTokenMock = jest.fn().mockResolvedValueOnce({ accessToken: accessTokenValue })
-
     msal.ConfidentialClientApplication.mockImplementation(() => {
       return { acquireTokenByClientCredential: acquireTokenMock }
+    })
+
+    readMock = jest.fn().mockResolvedValueOnce({ resource: { data: [] } })
+    itemMock = jest.fn(() => { return { read: readMock } })
+    containerMock = jest.fn(() => { return { item: itemMock } })
+    CosmosClient.prototype.database.mockImplementation(() => {
+      return { container: containerMock }
     })
 
     extractAADData = require('.')
@@ -58,6 +71,16 @@ describe('ExtractAADData function', () => {
         clientSecret: testEnvVars.AAD_CLIENT_SECRET
       }
     })
+  })
+
+  test('Cosmos client is correctly created on module import', async () => {
+    expect(CosmosClient).toHaveBeenCalledTimes(1)
+    expect(CosmosClient).toHaveBeenCalledWith(testEnvVars.COSMOS_DB_CONNECTION_STRING)
+    const databaseMock = CosmosClient.mock.instances[0].database
+    expect(databaseMock).toHaveBeenCalledTimes(1)
+    expect(databaseMock).toHaveBeenCalledWith(testEnvVars.COSMOS_DB_NAME)
+    expect(containerMock).toHaveBeenCalledTimes(1)
+    expect(containerMock).toHaveBeenCalledWith(testEnvVars.COSMOS_DB_REFDATA_CONTAINER)
   })
 
   test('request to Graph API is made correctly for single page of results', async () => {
@@ -125,8 +148,26 @@ describe('ExtractAADData function', () => {
       expect(user.givenName).toEqual(users[i].givenName)
       expect(user.surname).toEqual(users[i].surname)
       expect(user.companyName).toEqual(users[i].companyName)
-      expect(user.officeLocation).toEqual(users[i].officeLocation)
+      expect(user.officeLocation).toEqual('UNM:Unmapped')
     })
+  })
+
+  test('request to Cosmos DB is made and the data for mapping offices correct', async () => {
+    const officeCode = 'NEW:office-code-here'
+    const users = generateUsersWithId(1)
+    const expectedResponse = { value: users }
+    mockFetchResolvedJsonValueOnce(expectedResponse)
+    readMock = jest.fn().mockResolvedValueOnce({ resource: { data: [{ originalOfficeLocation: users[0].officeLocation, officeCode }] } })
+
+    await extractAADData(context)
+
+    expect(itemMock).toHaveBeenCalledTimes(1)
+    expect(itemMock).toHaveBeenCalledWith(officeLocationMapDocumentId, officeLocationMapDocumentId)
+    expect(readMock).toHaveBeenCalledTimes(1)
+    expect(context.bindings).toHaveProperty(outputBindingName)
+    expect(context.bindings[outputBindingName]).toHaveLength(1)
+    expect(context.bindings[outputBindingName][0]).toHaveProperty('officeLocation')
+    expect(context.bindings[outputBindingName][0].officeLocation).toEqual(officeCode)
   })
 
   test('an error is thrown (and logged) when an error occurs', async () => {
@@ -136,6 +177,15 @@ describe('ExtractAADData function', () => {
     await expect(extractAADData(context)).rejects.toThrow(Error)
 
     expect(context.log.error).toHaveBeenCalledTimes(1)
+  })
+
+  test('an error is thrown for an empty response for reference data', async () => {
+    readMock = jest.fn().mockResolvedValueOnce({ resource: undefined })
+
+    await expect(extractAADData(context)).rejects.toThrow(Error)
+
+    expect(context.log.error).toHaveBeenCalledTimes(1)
+    expect(context.log.error).toHaveBeenCalledWith(new Error(`No reference data retrieved for ${officeLocationMapDocumentId}.`))
   })
 })
 
