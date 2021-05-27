@@ -19,3 +19,11 @@ not be checked into source control (they are excluded via `.gitignore`).
 
 Run `./run-github-super-linter` to run GitHub Super Linter on the repo. This is
 run during the CI build to ensure all files adhere to the linting rules.
+
+## [Run function locally](./run-function-locally)
+
+Run one of the functions locally by sending an HTTP POST request. The function
+app needs to be running.
+
+The script requires the name of the function it should be run to be passed as
+the first argument e.g. `./run-function-local ExtractAADData`.

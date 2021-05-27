@@ -11,6 +11,7 @@
     "AW_TENANT_CODE": "",
     "COSMOS_DB_CONNECTION_STRING": "",
     "COSMOS_DB_NAME": "gwa",
+    "COSMOS_DB_REFDATA_CONTAINER": "reference-data",
     "COSMOS_DB_USERS_CONTAINER": "users-local",
     "DATA_EXTRACT_CONTAINER": "data-extract",
     "DATA_IMPORT_CONTAINER": "data-import",
