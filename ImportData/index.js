@@ -103,15 +103,28 @@ function categoriseUsers (usersToImport, existingUsers) {
     user.active = true
     user.id = emailAddress
     user.importDate = importDate
+    user.phoneNumbers = mapPhoneNumbers(user)
     delete user.emailAddress
 
     const existingUser = existingUsersMap.get(emailAddress)
 
     if (existingUser) {
+      // Existing user phoneNumbers take precedence over the 'new' user.
+      // This process doesn't updated subscribedTo should org or office change.
+      const concat = [...new Set(user.phoneNumbers.concat(existingUser.phoneNumbers).map(pn => pn.number))]
+      const phoneNumbers = concat.map(pn => {
+        const userPn = user.phoneNumbers.find(x => x.number === pn)
+        const existingUserPn = existingUser.phoneNumbers.find(x => x.number === pn)
+        if (userPn && existingUserPn) {
+          return existingUserPn
+        }
+        return userPn ?? existingUserPn
+      })
+
+      user.phoneNumbers = phoneNumbers
       usersUpdated.push({ ...existingUser, ...user })
       existingUsersMap.delete(emailAddress)
     } else {
-      user.phoneNumbers = mapPhoneNumbers(user)
       usersCreated.push(user)
     }
   }

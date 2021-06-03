@@ -73,13 +73,16 @@ describe('ImportData function', () => {
   })
 
   test('an item to import with an existing record is updated (movers or no change)', async () => {
-    const existingUsers = [{ id: 'a@a.com', existingProp: 'existingProp', sharedProp: 'existingUser' }]
+    const existingUsers = [{ id: 'a@a.com', phoneNumbers: [{ number: '07000111111', subscribedTo: ['THIS', 'THAT'] }, { number: '07000333333' }], existingProp: 'existingProp', sharedProp: 'existingUser' }]
+    const existingPhoneNumbers = existingUsers[0].phoneNumbers
     fetchAllMock.mockResolvedValueOnce({ resources: existingUsers })
-    const usersToImport = [{ emailAddress: 'a@a.com', newProp: 'newProp', sharedProp: 'importUser' }]
+    const usersToImport = [{ emailAddress: 'a@a.com', phoneNumbers: [], newProp: 'newProp', sharedProp: 'importUser' }]
     bindUsersForImport(usersToImport)
     bulkMock.mockResolvedValueOnce([
       { requestCharge: 10, resourceBody: { id: existingUsers[0].id }, statusCode: 200 }
     ])
+    const mappedPhoneNumbers = [{ number: '07000111111', subscribedTo: ['UNM:Unmapped'] }, { number: '07000222222', subscribedTo: ['UNM:Unmapped'] }]
+    mapPhoneNumbers.mockReturnValue(mappedPhoneNumbers)
 
     await importData(context)
 
@@ -95,9 +98,18 @@ describe('ImportData function', () => {
         id: existingUsers[0].id,
         importDate,
         newProp: usersToImport[0].newProp,
+        phoneNumbers: [
+          { number: existingPhoneNumbers[0].number, subscribedTo: existingPhoneNumbers[0].subscribedTo },
+          { number: mappedPhoneNumbers[1].number, subscribedTo: mappedPhoneNumbers[1].subscribedTo },
+          { number: existingPhoneNumbers[1].number }
+        ],
         sharedProp: usersToImport[0].sharedProp
       })
     }]))
+    expect(mapPhoneNumbers).toHaveBeenCalledTimes(1)
+    expect(mapPhoneNumbers).toHaveBeenCalledWith(expect.objectContaining({
+      id: usersToImport[0].emailAddress
+    }))
     expectLoggingToBeCorrect([
       `Users to import: ${usersToImport.length}.`,
       `Users already existing: ${existingUsers.length}.`,
@@ -136,6 +148,7 @@ describe('ImportData function', () => {
         id: usersToImport[0].emailAddress,
         importDate,
         newProp: usersToImport[0].newProp,
+        phoneNumbers: mappedPhoneNumbers,
         sharedProp: usersToImport[0].sharedProp
       })
     }]))
@@ -273,9 +286,9 @@ describe('ImportData function', () => {
   })
 
   test('users updated and created share the same import date and report correctly', async () => {
-    const existingUsers = [{ id: 'a@a.com', existingProp: 'existingProp', importDate: 1234567890 }]
+    const existingUsers = [{ id: 'a@a.com', phoneNumbers: [], existingProp: 'existingProp', importDate: 1234567890 }]
     fetchAllMock.mockResolvedValueOnce({ resources: existingUsers })
-    const usersToImport = [{ emailAddress: 'a@a.com', newProp: 'newProp' }, { emailAddress: 'b@b.com', newProp: 'newProp', sharedProp: 'importUser' }]
+    const usersToImport = [{ emailAddress: 'a@a.com', phoneNumbers: [], newProp: 'newProp' }, { emailAddress: 'b@b.com', phoneNumbers: [], newProp: 'newProp', sharedProp: 'importUser' }]
     bindUsersForImport(usersToImport)
     bulkMock.mockResolvedValueOnce([
       { requestCharge: 10, resourceBody: { id: usersToImport[0].emailAddress }, statusCode: 200 },
