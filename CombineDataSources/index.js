@@ -2,11 +2,13 @@ const Joi = require('joi')
 
 const schema = Joi.object({
   id: Joi.string().guid().required(),
-  companyName: Joi.string().required(),
-  officeLocation: Joi.string().pattern(/^[A-Z]{3}:[a-zA-Z0-9-]+$/).required(),
   emailAddress: Joi.string().email().required(),
-  surname: Joi.string().required(),
+  officeCode: Joi.string().pattern(/^[A-Z]{3}$/).required(),
+  officeLocation: Joi.string().pattern(/^[A-Z]{3}:[a-zA-Z0-9-]+$/).required(),
+  orgCode: Joi.string().required(),
+  orgName: Joi.string().required(),
   givenName: Joi.string().required(),
+  surname: Joi.string().required(),
   phoneNumbers: Joi.array().required()
 })
 
