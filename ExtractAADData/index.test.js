@@ -193,13 +193,22 @@ describe('ExtractAADData function', () => {
     expect(context.log.error).toHaveBeenCalledTimes(1)
   })
 
-  test('an error is thrown for an empty response for reference data', async () => {
+  test('an error is thrown for an empty response for office location reference data', async () => {
     readMock = jest.fn().mockResolvedValueOnce({ resource: undefined })
 
     await expect(extractAADData(context)).rejects.toThrow(Error)
 
     expect(context.log.error).toHaveBeenCalledTimes(1)
     expect(context.log.error).toHaveBeenCalledWith(new Error(`No reference data retrieved for ${officeLocationMapDocumentId}.`))
+  })
+
+  test('an error is thrown for an empty response for organisation map reference data', async () => {
+    readMock = jest.fn().mockResolvedValueOnce({ resource: { data: [] } }).mockResolvedValueOnce({ resource: undefined })
+
+    await expect(extractAADData(context)).rejects.toThrow(Error)
+
+    expect(context.log.error).toHaveBeenCalledTimes(1)
+    expect(context.log.error).toHaveBeenCalledWith(new Error(`No reference data retrieved for ${organisationMapDocumentId}.`))
   })
 })
 
