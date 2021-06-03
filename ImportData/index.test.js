@@ -20,6 +20,10 @@ describe('ImportData function', () => {
     context.bindings[inputBindingName] = Buffer.from(JSON.stringify(users))
   }
 
+  function expectLoggingToBeCorrect (logs) {
+    logs.forEach((log, i) => expect(context.log).toHaveBeenNthCalledWith(i + 1, log))
+  }
+
   beforeEach(() => {
     jest.clearAllMocks()
     jest.resetModules()
@@ -152,10 +156,6 @@ describe('ImportData function', () => {
       '0 user(s) inactive: .'
     ])
   })
-
-  function expectLoggingToBeCorrect (logs) {
-    logs.forEach((log, i) => expect(context.log).toHaveBeenNthCalledWith(i + 1, log))
-  }
 
   test('an existing record with no item to import is set inactive (leavers)', async () => {
     const previousImportDate = 12345567890
