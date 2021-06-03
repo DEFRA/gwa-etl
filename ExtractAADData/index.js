@@ -14,7 +14,8 @@ const db = client.database(dbName)
 const refDataContainer = db.container(refDataContainerName)
 const officeLocationMapDocumentId = 'standardisedOfficeLocationMap'
 const organisationMapDocumentId = 'organisationMap'
-const unmappedOfficeCode = 'UNM:Unmapped'
+const unmappedOfficeCode = 'UNM:Unmapped-office-location'
+const unmappedOfficeLocation = 'Unmapped office location'
 const unmappedOrgCode = 'UFD'
 const unmappedOrgName = 'Undefined'
 
@@ -65,7 +66,7 @@ module.exports = async function (context) {
         delete user.mail
 
         const office = officeLocationMap.get(user.officeLocation)
-        user.officeLocation = office?.officeLocation ?? unmappedOfficeCode.slice(4)
+        user.officeLocation = office?.officeLocation ?? unmappedOfficeLocation
         user.officeCode = office?.officeCode ?? unmappedOfficeCode
 
         const org = organisationMap.get(user.companyName)
