@@ -13,7 +13,11 @@ const client = new CosmosClient(connectionString)
 const db = client.database(dbName)
 const refDataContainer = db.container(refDataContainerName)
 const officeLocationMapDocumentId = 'standardisedOfficeLocationMap'
-const unmappedOfficeCode = 'UNM:Unmapped'
+const organisationMapDocumentId = 'organisationMap'
+const unmappedOfficeCode = 'UNM:Unmapped-office-location'
+const unmappedOfficeLocation = 'Unmapped office location'
+const unmappedOrgCode = 'UFD'
+const unmappedOrgName = 'Undefined'
 
 const cca = new msal.ConfidentialClientApplication({
   auth: {
@@ -25,11 +29,16 @@ const cca = new msal.ConfidentialClientApplication({
 
 module.exports = async function (context) {
   try {
-    const refData = (await refDataContainer.item(officeLocationMapDocumentId, officeLocationMapDocumentId).read())?.resource
-    if (!refData) {
+    const officeLocationMapRefData = (await refDataContainer.item(officeLocationMapDocumentId, officeLocationMapDocumentId).read())?.resource
+    if (!officeLocationMapRefData) {
       throw new Error(`No reference data retrieved for ${officeLocationMapDocumentId}.`)
     }
-    const officeLocationMap = new Map(refData.data.map(ol => [ol.originalOfficeLocation, { officeCode: ol.officeCode, officeLocation: ol.officeLocation }]))
+    const organisationMapRefData = (await refDataContainer.item(organisationMapDocumentId, organisationMapDocumentId).read())?.resource
+    if (!organisationMapRefData) {
+      throw new Error(`No reference data retrieved for ${organisationMapDocumentId}.`)
+    }
+    const officeLocationMap = new Map(officeLocationMapRefData.data.map(ol => [ol.originalOfficeLocation, { officeCode: ol.officeCode, officeLocation: ol.officeLocation }]))
+    const organisationMap = new Map(organisationMapRefData.data.map(o => [o.originalOrgName, { orgCode: o.orgCode, orgName: o.orgName }]))
 
     const clientCredentialRequest = { scopes: ['https://graph.microsoft.com/.default'] }
     const authResult = await cca.acquireTokenByClientCredential(clientCredentialRequest)
@@ -55,9 +64,15 @@ module.exports = async function (context) {
       users.forEach(user => {
         user.emailAddress = user.mail.toLowerCase()
         delete user.mail
+
         const office = officeLocationMap.get(user.officeLocation)
-        user.officeLocation = office?.officeLocation ?? unmappedOfficeCode.slice(4)
+        user.officeLocation = office?.officeLocation ?? unmappedOfficeLocation
         user.officeCode = office?.officeCode ?? unmappedOfficeCode
+
+        const org = organisationMap.get(user.companyName)
+        user.orgCode = org?.orgCode ?? unmappedOrgCode
+        user.orgName = org?.orgName ?? unmappedOrgName
+        delete user.companyName
       })
       processedUsers = processedUsers.concat(users)
       url = data['@odata.nextLink']

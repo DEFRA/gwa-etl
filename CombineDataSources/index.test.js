@@ -9,12 +9,14 @@ describe('CombineDataSources function', () => {
   const context = require('../test/defaultContext')
   const validInput = {
     id: uuid(),
-    companyName: 'companyName',
-    officeLocation: 'VLD:validOfficeLocation-1-99',
-    surname: 'surname',
+    emailAddress: 'a@a.com',
+    orgCode: 'ORGCODE',
+    orgName: 'A well formatted name',
+    officeCode: 'VLD:validOfficeLocation-1-99',
+    officeLocation: 'a valid office location',
     givenName: 'givenName',
-    phoneNumbers: ['07000111222'],
-    emailAddress: 'a@a.com'
+    surname: 'surname',
+    phoneNumbers: ['07000111222']
   }
 
   beforeEach(() => {
@@ -35,12 +37,14 @@ describe('CombineDataSources function', () => {
 
   test.each([
     ['id'],
-    ['companyName'],
+    ['emailAddress'],
+    ['officeCode'],
     ['officeLocation'],
-    ['surname'],
+    ['orgCode'],
+    ['orgName'],
     ['givenName'],
-    ['phoneNumbers'],
-    ['emailAddress']
+    ['surname'],
+    ['phoneNumbers']
   ])('users are saved to error users output binding when they are not valid input - missing property (%s)', async (property) => {
     const input = { ...validInput }
     delete input[property]
@@ -56,8 +60,18 @@ describe('CombineDataSources function', () => {
   })
 
   test.each([
+    ['id', undefined],
+    ['id', 'not-a-guid'],
+    ['emailAddress', undefined],
     ['emailAddress', 'not-an-email'],
-    ['officeLocation', 'INCORRECT:format']
+    ['officeCode', undefined],
+    ['officeCode', 'WRONG:format'],
+    ['officeLocation', undefined],
+    ['orgCode', undefined],
+    ['orgName', undefined],
+    ['givenName', undefined],
+    ['surname', undefined],
+    ['phoneNumbers', undefined]
   ])('users are saved to error users output binding when they are not valid input - incorrect format property (%s)', async (property, value) => {
     const input = { ...validInput }
     input[property] = value

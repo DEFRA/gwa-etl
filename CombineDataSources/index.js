@@ -2,11 +2,13 @@ const Joi = require('joi')
 
 const schema = Joi.object({
   id: Joi.string().guid().required(),
-  companyName: Joi.string().required(),
-  officeLocation: Joi.string().pattern(/^[A-Z]{3}:[a-zA-Z0-9-]+$/).required(),
   emailAddress: Joi.string().email().required(),
-  surname: Joi.string().required(),
+  officeCode: Joi.string().pattern(/^[A-Z]{3}:[a-zA-Z0-9-]+$/).required(),
+  officeLocation: Joi.string().required(),
+  orgCode: Joi.string().required(),
+  orgName: Joi.string().required(),
   givenName: Joi.string().required(),
+  surname: Joi.string().required(),
   phoneNumbers: Joi.array().required()
 })
 
@@ -20,7 +22,7 @@ module.exports = async function (context) {
     const validUsers = users.filter(user => {
       const { error } = schema.validate(user)
       if (error) {
-        errorUsers.push({ error, user })
+        errorUsers.push({ error })
         return false
       }
       return true

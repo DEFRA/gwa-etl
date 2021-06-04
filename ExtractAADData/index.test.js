@@ -35,6 +35,7 @@ describe('ExtractAADData function', () => {
   const accessTokenValue = 'access-token'
   const defaultTokenScopes = { scopes: ['https://graph.microsoft.com/.default'] }
   const officeLocationMapDocumentId = 'standardisedOfficeLocationMap'
+  const organisationMapDocumentId = 'organisationMap'
 
   beforeEach(() => {
     jest.clearAllMocks()
@@ -52,7 +53,9 @@ describe('ExtractAADData function', () => {
       return { acquireTokenByClientCredential: acquireTokenMock }
     })
 
-    readMock = jest.fn().mockResolvedValueOnce({ resource: { data: [] } })
+    readMock = jest.fn()
+      .mockResolvedValueOnce({ resource: { data: [] } }) // officeLocationMapDocumentId
+      .mockResolvedValueOnce({ resource: { data: [] } }) // organisationMapDocumentId
     itemMock = jest.fn(() => { return { read: readMock } })
     containerMock = jest.fn(() => { return { item: itemMock } })
     CosmosClient.prototype.database.mockImplementation(() => {
@@ -147,30 +150,38 @@ describe('ExtractAADData function', () => {
       expect(user.emailAddress).toEqual(users[i].mail.toLowerCase())
       expect(user.givenName).toEqual(users[i].givenName)
       expect(user.surname).toEqual(users[i].surname)
-      expect(user.companyName).toEqual(users[i].companyName)
-      expect(user.officeCode).toEqual('UNM:Unmapped')
-      expect(user.officeLocation).toEqual('Unmapped')
+      expect(user.orgCode).toEqual('UFD')
+      expect(user.orgName).toEqual('Undefined')
+      expect(user.officeCode).toEqual('UNM:Unmapped-office-location')
+      expect(user.officeLocation).toEqual('Unmapped office location')
     })
   })
 
-  test('request to Cosmos DB is made and the data for mapping offices correct', async () => {
+  test('request to Cosmos DB for ref data is made and the use of the data is correct', async () => {
     const officeLocation = 'office location somewhere'
     const officeCode = 'NEW:office-location-somewhere'
+    const orgCode = 'MCN'
+    const orgName = 'Mapped company name'
     const users = generateUsersWithId(1)
     const expectedResponse = { value: users }
     mockFetchResolvedJsonValueOnce(expectedResponse)
-    readMock = jest.fn().mockResolvedValueOnce({ resource: { data: [{ originalOfficeLocation: users[0].officeLocation, officeCode, officeLocation }] } })
+    readMock = jest.fn()
+      .mockResolvedValueOnce({ resource: { data: [{ originalOfficeLocation: users[0].officeLocation, officeCode, officeLocation }] } }) // officeLocationMapDocumentId
+      .mockResolvedValueOnce({ resource: { data: [{ originalOrgName: users[0].companyName, orgCode, orgName }] } }) // organisationMapDocumentId
 
     await extractAADData(context)
 
-    expect(itemMock).toHaveBeenCalledTimes(1)
-    expect(itemMock).toHaveBeenCalledWith(officeLocationMapDocumentId, officeLocationMapDocumentId)
-    expect(readMock).toHaveBeenCalledTimes(1)
+    expect(itemMock).toHaveBeenCalledTimes(2)
+    expect(itemMock).toHaveBeenNthCalledWith(1, officeLocationMapDocumentId, officeLocationMapDocumentId)
+    expect(itemMock).toHaveBeenNthCalledWith(2, organisationMapDocumentId, organisationMapDocumentId)
+    expect(readMock).toHaveBeenCalledTimes(2)
     expect(context.bindings).toHaveProperty(outputBindingName)
     expect(context.bindings[outputBindingName]).toHaveLength(1)
-    expect(context.bindings[outputBindingName][0]).toHaveProperty('officeLocation')
     expect(context.bindings[outputBindingName][0].officeCode).toEqual(officeCode)
     expect(context.bindings[outputBindingName][0].officeLocation).toEqual(officeLocation)
+    expect(context.bindings[outputBindingName][0]).not.toHaveProperty('companyName')
+    expect(context.bindings[outputBindingName][0].orgCode).toEqual(orgCode)
+    expect(context.bindings[outputBindingName][0].orgName).toEqual(orgName)
   })
 
   test('an error is thrown (and logged) when an error occurs', async () => {
@@ -182,13 +193,22 @@ describe('ExtractAADData function', () => {
     expect(context.log.error).toHaveBeenCalledTimes(1)
   })
 
-  test('an error is thrown for an empty response for reference data', async () => {
+  test('an error is thrown for an empty response for office location reference data', async () => {
     readMock = jest.fn().mockResolvedValueOnce({ resource: undefined })
 
     await expect(extractAADData(context)).rejects.toThrow(Error)
 
     expect(context.log.error).toHaveBeenCalledTimes(1)
     expect(context.log.error).toHaveBeenCalledWith(new Error(`No reference data retrieved for ${officeLocationMapDocumentId}.`))
+  })
+
+  test('an error is thrown for an empty response for organisation map reference data', async () => {
+    readMock = jest.fn().mockResolvedValueOnce({ resource: { data: [] } }).mockResolvedValueOnce({ resource: undefined })
+
+    await expect(extractAADData(context)).rejects.toThrow(Error)
+
+    expect(context.log.error).toHaveBeenCalledTimes(1)
+    expect(context.log.error).toHaveBeenCalledWith(new Error(`No reference data retrieved for ${organisationMapDocumentId}.`))
   })
 })
 
