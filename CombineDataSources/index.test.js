@@ -16,14 +16,19 @@ describe('CombineDataSources function', () => {
     officeLocation: 'a valid office location',
     givenName: 'givenName',
     surname: 'surname',
-    phoneNumbers: ['07000111222']
+    phoneNumbers: []
   }
 
   beforeEach(() => {
     jest.clearAllMocks()
   })
 
-  test('users are saved to valid users output binding when they are valid input', async () => {
+  test.each([
+    ['phoneNumbers', []],
+    ['phoneNumbers', ['+447000111111']],
+    ['phoneNumbers', ['+447000111111', '+447000222222']]
+  ])('users are saved to valid users output binding when they are valid input', async (property, value) => {
+    validInput[property] = value
     const inputFileContents = [validInput]
     context.bindings[inputBlobBindingName] = Buffer.from(JSON.stringify(inputFileContents))
 
@@ -71,7 +76,8 @@ describe('CombineDataSources function', () => {
     ['orgName', undefined],
     ['givenName', undefined],
     ['surname', undefined],
-    ['phoneNumbers', undefined]
+    ['phoneNumbers', undefined],
+    ['phoneNumbers', ['07000111111']]
   ])('users are saved to error users output binding when they are not valid input - incorrect format property (%s)', async (property, value) => {
     const input = { ...validInput }
     input[property] = value

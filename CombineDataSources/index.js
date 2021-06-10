@@ -9,7 +9,7 @@ const schema = Joi.object({
   orgName: Joi.string().required(),
   givenName: Joi.string().required(),
   surname: Joi.string().required(),
-  phoneNumbers: Joi.array().required()
+  phoneNumbers: Joi.array().items(Joi.string().pattern(/^\+447[0-9]{9}$/)).required()
 })
 
 module.exports = async function (context) {
