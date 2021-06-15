@@ -27,6 +27,11 @@ module.exports = async function (context) {
         }
       })
 
+      if (res.status !== 200) {
+        context.log.error(`Response was not OK.\nStatus: ${res.status}\nText: ${res.statusText}\nURL: ${res.url}`)
+        return
+      }
+
       const { Devices, Page, PageSize, Total } = (await res.json())
       const resDeviceCount = Devices.length
       context.log(`Response\nStatus: ${res.status} (${res.statusText})\nHeaders: ${JSON.stringify(res.headers.raw())}`)
