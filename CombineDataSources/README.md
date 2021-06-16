@@ -7,18 +7,18 @@
 
 The function triggers on files in the `data-sources` blob storage container.
 The container contains the combined dataset from
-[CombineUserData](../CombineUserData) along with organisation specific files.
-The organisation specific files contain user data uploaded from
+[CombineUserData](../CombineUserData) along with other organisation's data
+files. The organisation data files contain user data uploaded from
 [gwa-web](https://github.com/DEFRA/gwa-web).
 
 The contents of all files in the container is loaded and processed. Duplicate
-users are searched for. For duplicates where an entry exists in the core data
+users are processed. Duplicates with an entry in the core data
 (i.e. any users in `internal-users.json`) that entry is used with the other
-being ignored. Duplicate entries not in the core dataset are not progressed and
-the emails are output to a file (`duplicate.json`) for later inspection.
+being ignored. Duplicate entries not in the core dataset are not deemed as
+valid and are output to a file (`duplicate.json`) for later inspection.
 
 When duplicates have been removed the users are validated against a schema to
 ensure they are valid and are OK to be moved to the next stage. If the
 validation fails the user is not eligible and will be added to an
-`error-user.json` file for later inspection. Users that pass validation will be
-uploaded to the next stage in `all-users.json`.
+`error-users.json` file for later inspection. Users that pass validation will be
+uploaded to the next stage in `valid-users.json`.
