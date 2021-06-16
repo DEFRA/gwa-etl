@@ -91,6 +91,9 @@ describe('CombineDataSources function', () => {
     expect(bindings.duplicateUsers).toEqual([])
     expect(bindings.errorUsers).toEqual(errorUsers)
     expect(bindings.validUsers).toEqual(validUsers)
+    expect(context.log).toHaveBeenCalledTimes(2)
+    expect(context.log).toHaveBeenNthCalledWith(1, 'Combine Data Sources Blob Trigger function activated:\n - Blob: blobTrigger\n - Name: userDataBlobName.json\n - Size: 0 Bytes')
+    expect(context.log).toHaveBeenNthCalledWith(2, `Valid user count: ${validUsers.length}\nError user count: ${errorUsers.length}\nDuplicate user count: ${[].length}`)
   })
 
   test('users duplicated across internal and non-internal sources are kept and added to the duplicateUsers binding', async () => {
@@ -124,6 +127,7 @@ describe('CombineDataSources function', () => {
     expect(bindings.duplicateUsers).toEqual(nonInternalUsersOne)
     expect(bindings.errorUsers).toEqual(errorUsers)
     expect(bindings.validUsers).toEqual(validUsers)
+    expect(context.log).toHaveBeenNthCalledWith(2, `Valid user count: ${validUsers.length}\nError user count: ${errorUsers.length}\nDuplicate user count: ${nonInternalUsersOne.length}`)
   })
 
   test('an error is thrown (and logged) when an error occurs', async () => {
