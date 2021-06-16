@@ -1,5 +1,5 @@
 const { CosmosClient } = require('@azure/cosmos')
-const mapPhoneNumbers = require('../lib/mapPhoneNumbers')
+const mapPhoneNumbers = require('../lib/map-phone-numbers')
 
 const connectionString = process.env.COSMOS_DB_CONNECTION_STRING
 const dbName = process.env.COSMOS_DB_NAME

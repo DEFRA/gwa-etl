@@ -1,10 +1,10 @@
-const testEnvVars = require('../test/testEnvVars')
-const { generateUsersToImport } = require('../test/generateUsers')
+const testEnvVars = require('../test/test-env-vars')
+const { generateUsersToImport } = require('../test/generate-users')
 
 const inputBindingName = 'blobContents'
 
 describe('ImportData function', () => {
-  const context = require('../test/defaultContext')
+  const context = require('../test/default-context')
   const importDate = Date.now()
   Date.now = jest.fn(() => importDate)
 
@@ -30,8 +30,8 @@ describe('ImportData function', () => {
 
     CosmosClient = require('@azure/cosmos').CosmosClient
     jest.mock('@azure/cosmos')
-    mapPhoneNumbers = require('../lib/mapPhoneNumbers')
-    jest.mock('../lib/mapPhoneNumbers')
+    mapPhoneNumbers = require('../lib/map-phone-numbers')
+    jest.mock('../lib/map-phone-numbers')
     mapPhoneNumbers.mockReturnValue([])
 
     bulkMock = jest.fn()

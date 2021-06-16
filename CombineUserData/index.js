@@ -1,7 +1,7 @@
 const { ContainerClient } = require('@azure/storage-blob')
 
-const combineData = require('../lib/combineData')
-const getBlobContents = require('../lib/getBlobContents')
+const combineData = require('../lib/combine-data')
+const getBlobContents = require('../lib/get-blob-contents')
 const { aadFilename, awFilename } = require('../lib/config')
 
 const connectionString = process.env.AzureWebJobsStorage
