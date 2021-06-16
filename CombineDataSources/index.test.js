@@ -1,5 +1,3 @@
-const { v4: uuid } = require('uuid')
-
 const inputBlobBindingName = 'blobContents'
 const duplicateUsersOutputBindingName = 'duplicateUsers'
 const errorUsersOutputBindingName = 'errorUsers'
@@ -8,17 +6,6 @@ const testEnvVars = require('../test/test-env-vars')
 
 describe('CombineDataSources function', () => {
   const context = require('../test/default-context')
-  const validInput = {
-    id: uuid(),
-    emailAddress: 'a@a.com',
-    orgCode: 'ORGCODE',
-    orgName: 'A well formatted name',
-    officeCode: 'VLD:validOfficeLocation-1-99',
-    officeLocation: 'a valid office location',
-    givenName: 'givenName',
-    surname: 'surname',
-    phoneNumbers: []
-  }
 
   let combineDataSources
   let ContainerClient
