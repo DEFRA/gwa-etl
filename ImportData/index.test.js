@@ -76,7 +76,7 @@ describe('ImportData function', () => {
     const existingUsers = [{ id: 'a@a.com', phoneNumbers: [{ number: '07000111111', subscribedTo: ['THIS', 'THAT'] }, { number: '07000333333' }], existingProp: 'existingProp', sharedProp: 'existingUser' }]
     const existingPhoneNumbers = existingUsers[0].phoneNumbers
     fetchAllMock.mockResolvedValueOnce({ resources: existingUsers })
-    const usersToImport = [{ emailAddress: 'a@a.com', phoneNumbers: [], newProp: 'newProp', sharedProp: 'importUser' }]
+    const usersToImport = [{ emailAddress: 'A@A.COM', phoneNumbers: [], newProp: 'newProp', sharedProp: 'importUser' }]
     bindUsersForImport(usersToImport)
     bulkMock.mockResolvedValueOnce([
       { requestCharge: 10, resourceBody: { id: existingUsers[0].id }, statusCode: 200 }
@@ -108,7 +108,7 @@ describe('ImportData function', () => {
     }]))
     expect(mapPhoneNumbers).toHaveBeenCalledTimes(1)
     expect(mapPhoneNumbers).toHaveBeenCalledWith(expect.objectContaining({
-      id: usersToImport[0].emailAddress
+      id: usersToImport[0].emailAddress.toLowerCase()
     }))
     expectLoggingToBeCorrect([
       `Users to import: ${usersToImport.length}.`,
@@ -127,10 +127,10 @@ describe('ImportData function', () => {
   test('an item to import with no existing record is created (joiners) with correct schema', async () => {
     const existingUsers = []
     fetchAllMock.mockResolvedValueOnce({ resources: existingUsers })
-    const usersToImport = [{ emailAddress: 'a@a.com', newProp: 'newProp', sharedProp: 'importUser' }]
+    const usersToImport = [{ emailAddress: 'A@A.COM', newProp: 'newProp', sharedProp: 'importUser' }]
     bindUsersForImport(usersToImport)
     bulkMock.mockResolvedValueOnce([
-      { requestCharge: 10, resourceBody: { id: usersToImport[0].emailAddress }, statusCode: 201 }
+      { requestCharge: 10, resourceBody: { id: usersToImport[0].emailAddress.toLowerCase() }, statusCode: 201 }
     ])
     const mappedPhoneNumbers = [{ data: 'from-phonenumber-mock' }]
     mapPhoneNumbers.mockReturnValue(mappedPhoneNumbers)
@@ -142,10 +142,10 @@ describe('ImportData function', () => {
     expect(bulkMock).toHaveBeenCalledTimes(1)
     expect(bulkMock).toHaveBeenCalledWith(expect.arrayContaining([{
       operationType: 'Upsert',
-      partitionKey: usersToImport[0].emailAddress,
+      partitionKey: usersToImport[0].emailAddress.toLowerCase(),
       resourceBody: expect.objectContaining({
         active: true,
-        id: usersToImport[0].emailAddress,
+        id: usersToImport[0].emailAddress.toLowerCase(),
         importDate,
         newProp: usersToImport[0].newProp,
         phoneNumbers: mappedPhoneNumbers,
@@ -154,7 +154,7 @@ describe('ImportData function', () => {
     }]))
     expect(mapPhoneNumbers).toHaveBeenCalledTimes(1)
     expect(mapPhoneNumbers).toHaveBeenCalledWith(expect.objectContaining({
-      id: usersToImport[0].emailAddress
+      id: usersToImport[0].emailAddress.toLowerCase()
     }))
     expectLoggingToBeCorrect([
       `Users to import: ${usersToImport.length}.`,
@@ -164,7 +164,7 @@ describe('ImportData function', () => {
       'Users updated successfully: 1\nUsers still to be updated: 0\nCost (RUs): 10.',
       'After 1 attempt(s), 0 user(s) are still to be updated.',
       'Total cost (RUs): 10.',
-      `1 user(s) created: ${usersToImport[0].emailAddress}.`,
+      `1 user(s) created: ${usersToImport[0].emailAddress.toLowerCase()}.`,
       '0 user(s) updated: .',
       '0 user(s) inactive: .'
     ])
@@ -174,11 +174,11 @@ describe('ImportData function', () => {
     const previousImportDate = 12345567890
     const existingUsers = [{ id: 'a@a.com', existingProp: 'existingProp', sharedProp: 'existingUser', importDate: previousImportDate }]
     fetchAllMock.mockResolvedValueOnce({ resources: existingUsers })
-    const usersToImport = [{ emailAddress: 'b@b.com', newProp: 'newProp', sharedProp: 'importUser' }]
+    const usersToImport = [{ emailAddress: 'B@B.COM', newProp: 'newProp', sharedProp: 'importUser' }]
     bindUsersForImport(usersToImport)
     bulkMock.mockResolvedValueOnce([
       { requestCharge: 10, resourceBody: { id: existingUsers[0].id }, statusCode: 200 },
-      { requestCharge: 10, resourceBody: { id: usersToImport[0].emailAddress }, statusCode: 200 }
+      { requestCharge: 10, resourceBody: { id: usersToImport[0].emailAddress.toLowerCase() }, statusCode: 200 }
     ])
 
     await importData(context)
@@ -206,7 +206,7 @@ describe('ImportData function', () => {
       'Users updated successfully: 2\nUsers still to be updated: 0\nCost (RUs): 20.',
       'After 1 attempt(s), 0 user(s) are still to be updated.',
       'Total cost (RUs): 20.',
-      `1 user(s) created: ${usersToImport[0].emailAddress}.`,
+      `1 user(s) created: ${usersToImport[0].emailAddress.toLowerCase()}.`,
       '0 user(s) updated: .',
       `1 user(s) inactive: ${existingUsers[0].id}.`
     ])

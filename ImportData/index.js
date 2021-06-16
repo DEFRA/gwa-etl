@@ -99,7 +99,7 @@ function categoriseUsers (usersToImport, existingUsers) {
 
   const importDate = Date.now()
   for (const user of usersToImport) {
-    const { emailAddress } = user
+    const emailAddress = user.emailAddress.toLowerCase()
     user.active = true
     user.id = emailAddress
     user.importDate = importDate
