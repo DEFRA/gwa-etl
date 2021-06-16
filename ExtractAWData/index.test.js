@@ -1,15 +1,15 @@
 const fetch = require('node-fetch')
 jest.mock('node-fetch')
 
-const testEnvVars = require('../test/testEnvVars')
+const testEnvVars = require('../test/test-env-vars')
 
 const outputBindingName = 'awUsers'
 
 describe('ExtractAWData function', () => {
   const extractAWData = require('.')
 
-  const context = require('../test/defaultContext')
-  const { generateIPads, generateIPhones } = require('../test/generateDevices')
+  const context = require('../test/default-context')
+  const { generateIPads, generateIPhones } = require('../test/generate-devices')
 
   function expectFetchRequestIsCorrect (url) {
     expect(fetch).toHaveBeenCalledWith(url, {
@@ -25,7 +25,7 @@ describe('ExtractAWData function', () => {
   const statusText = 'OK'
   const status = 200
 
-  async function mockFetchResolvedJsonValueOnce (val) {
+  function mockFetchResolvedJsonValueOnce (val) {
     fetch.mockResolvedValueOnce({
       headers: { raw: () => { return {} } },
       json: async () => { return val },
@@ -35,6 +35,25 @@ describe('ExtractAWData function', () => {
   }
 
   beforeEach(() => { jest.clearAllMocks() })
+
+  test('non 200 response from AW logs error and returns early', async () => {
+    const status = 401
+    const statusText = 'Unauthorized'
+    const url = `https://${testEnvVars.AW_DOMAIN}/API/mdm/devices/search?pagesize=${PageSize}&page=0`
+    fetch.mockResolvedValueOnce({
+      headers: { raw: () => { return {} } },
+      status,
+      statusText,
+      url
+    })
+
+    await extractAWData(context)
+
+    expect(fetch).toHaveBeenCalledTimes(1)
+    expectFetchRequestIsCorrect(`https://${testEnvVars.AW_DOMAIN}/API/mdm/devices/search?pagesize=${PageSize}&page=0`)
+    expect(context.log.error).toHaveBeenCalledTimes(1)
+    expect(context.log.error).toHaveBeenCalledWith(`Response was not OK.\nStatus: ${status}\nText: ${statusText}\nURL: ${url}`)
+  })
 
   test('request to AW API is made correctly', async () => {
     const expectedResponse = { Devices: [], Page: 0, PageSize, Total: 0 }
@@ -168,8 +187,7 @@ describe('ExtractAWData function', () => {
   })
 
   test('an error is thrown (and logged) when an error occurs', async () => {
-    // Return nothing to generate error. Dereferenced res values are undefined.
-    fetch.mockResolvedValueOnce({ })
+    fetch.mockRejectedValue({ })
 
     await expect(extractAWData(context)).rejects.toThrow(Error)
 

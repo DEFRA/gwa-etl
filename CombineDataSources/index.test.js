@@ -1,95 +1,120 @@
-const { v4: uuid } = require('uuid')
-
 const inputBlobBindingName = 'blobContents'
+const duplicateUsersOutputBindingName = 'duplicateUsers'
 const errorUsersOutputBindingName = 'errorUsers'
 const validUsersOutputBindingName = 'validUsers'
+const testEnvVars = require('../test/test-env-vars')
 
 describe('CombineDataSources function', () => {
-  const combineDataSources = require('.')
-  const context = require('../test/defaultContext')
-  const validInput = {
-    id: uuid(),
-    emailAddress: 'a@a.com',
-    orgCode: 'ORGCODE',
-    orgName: 'A well formatted name',
-    officeCode: 'VLD:validOfficeLocation-1-99',
-    officeLocation: 'a valid office location',
-    givenName: 'givenName',
-    surname: 'surname',
-    phoneNumbers: []
-  }
+  const context = require('../test/default-context')
+
+  let combineDataSources
+  let ContainerClient
+  let getContainerContents
+  let validateUsers
 
   beforeEach(() => {
     jest.clearAllMocks()
+    jest.resetModules()
+
+    ContainerClient = require('@azure/storage-blob').ContainerClient
+    jest.mock('@azure/storage-blob')
+    jest.mock('../lib/get-container-contents')
+    getContainerContents = require('../lib/get-container-contents')
+    jest.mock('../lib/validate-users')
+    validateUsers = require('../lib/validate-users')
+
+    combineDataSources = require('.')
+    context.bindingData = { blobTrigger: 'blobTrigger', userDataBlobName: 'userDataBlobName.json' }
+    context.bindings = { blobContents: [] }
   })
 
-  test.each([
-    ['phoneNumbers', []],
-    ['phoneNumbers', ['+447000111111']],
-    ['phoneNumbers', ['+447000111111', '+447000222222']]
-  ])('users are saved to valid users output binding when they are valid input', async (property, value) => {
-    validInput[property] = value
-    const inputFileContents = [validInput]
-    context.bindings[inputBlobBindingName] = Buffer.from(JSON.stringify(inputFileContents))
+  test('Cosmos client is correctly created on module import', async () => {
+    expect(ContainerClient).toHaveBeenCalledTimes(1)
+    expect(ContainerClient).toHaveBeenCalledWith(testEnvVars.AzureWebJobsStorage, testEnvVars.DATA_SOURCES_CONTAINER)
+  })
+
+  test('no data in internal users file and no other blobs', async () => {
+    getContainerContents.mockResolvedValue([undefined])
+    validateUsers.mockReturnValue({ errorUsers: [], validUsers: [] })
 
     await combineDataSources(context)
 
-    expect(context.bindings).toHaveProperty(validUsersOutputBindingName)
-    expect(context.bindings[validUsersOutputBindingName]).toEqual(inputFileContents)
-    expect(context.bindings).toHaveProperty(errorUsersOutputBindingName)
-    expect(context.bindings[errorUsersOutputBindingName]).toHaveLength(0)
+    const { bindings } = context
+    expect(bindings).toHaveProperty(duplicateUsersOutputBindingName)
+    expect(bindings.duplicateUsers).toEqual([])
+    expect(bindings).toHaveProperty(errorUsersOutputBindingName)
+    expect(bindings.errorUsers).toEqual([])
+    expect(bindings).toHaveProperty(validUsersOutputBindingName)
+    expect(bindings.validUsers).toEqual([])
   })
 
-  test.each([
-    ['id'],
-    ['emailAddress'],
-    ['officeCode'],
-    ['officeLocation'],
-    ['orgCode'],
-    ['orgName'],
-    ['givenName'],
-    ['surname'],
-    ['phoneNumbers']
-  ])('users are saved to error users output binding when they are not valid input - missing property (%s)', async (property) => {
-    const input = { ...validInput }
-    delete input[property]
-    const inputFileContents = [input]
-    context.bindings[inputBlobBindingName] = Buffer.from(JSON.stringify(inputFileContents))
+  test('valid and error users are bound correctly - internal users only', async () => {
+    const validUsers = [{ emailAddress: 'abc@test.com' }]
+    const errorUsers = [{ emailAddress: 'xyz@test.com' }]
+    const internalUsers = [validUsers, errorUsers].flat()
+    getContainerContents.mockResolvedValue([internalUsers])
+    validateUsers.mockReturnValue({ errorUsers, validUsers })
 
     await combineDataSources(context)
 
-    expect(context.bindings).toHaveProperty(errorUsersOutputBindingName)
-    expect(context.bindings[errorUsersOutputBindingName]).toHaveLength(1)
-    expect(context.bindings).toHaveProperty(validUsersOutputBindingName)
-    expect(context.bindings[validUsersOutputBindingName]).toHaveLength(0)
+    const { bindings } = context
+    expect(bindings.duplicateUsers).toEqual([])
+    expect(bindings.errorUsers).toEqual(errorUsers)
+    expect(bindings.validUsers).toEqual(validUsers)
   })
 
-  test.each([
-    ['id', undefined],
-    ['id', 'not-a-guid'],
-    ['emailAddress', undefined],
-    ['emailAddress', 'not-an-email'],
-    ['officeCode', undefined],
-    ['officeCode', 'WRONG:format'],
-    ['officeLocation', undefined],
-    ['orgCode', undefined],
-    ['orgName', undefined],
-    ['givenName', undefined],
-    ['surname', undefined],
-    ['phoneNumbers', undefined],
-    ['phoneNumbers', ['07000111111']]
-  ])('users are saved to error users output binding when they are not valid input - incorrect format property (%s)', async (property, value) => {
-    const input = { ...validInput }
-    input[property] = value
-    const inputFileContents = [input]
-    context.bindings[inputBlobBindingName] = Buffer.from(JSON.stringify(inputFileContents))
+  test('valid and error users are bound correctly - internal and non internal users', async () => {
+    const errorUsers = [{ emailAddress: 'xyz@test.com' }]
+    const internalUsers = [{ emailAddress: 'abc@test.com' }, errorUsers].flat()
+    const nonInternalUsersOne = [{ emailAddress: '123@test.com' }]
+    const nonInternalUsersTwo = [{ emailAddress: '456@test.com' }, { emailAddress: '789@test.com' }]
+    getContainerContents.mockResolvedValue([internalUsers, nonInternalUsersOne, nonInternalUsersTwo])
+    const validUsers = [internalUsers[0], nonInternalUsersOne, nonInternalUsersTwo].flat()
+    validateUsers.mockReturnValue({ errorUsers, validUsers })
 
     await combineDataSources(context)
 
-    expect(context.bindings).toHaveProperty(errorUsersOutputBindingName)
-    expect(context.bindings[errorUsersOutputBindingName]).toHaveLength(1)
-    expect(context.bindings).toHaveProperty(validUsersOutputBindingName)
-    expect(context.bindings[validUsersOutputBindingName]).toHaveLength(0)
+    const { bindings } = context
+    expect(bindings.duplicateUsers).toEqual([])
+    expect(bindings.errorUsers).toEqual(errorUsers)
+    expect(bindings.validUsers).toEqual(validUsers)
+    expect(context.log).toHaveBeenCalledTimes(2)
+    expect(context.log).toHaveBeenNthCalledWith(1, 'Combine Data Sources Blob Trigger function activated:\n - Blob: blobTrigger\n - Name: userDataBlobName.json\n - Size: 0 Bytes')
+    expect(context.log).toHaveBeenNthCalledWith(2, `Valid user count: ${validUsers.length}\nError user count: ${errorUsers.length}\nDuplicate user count: ${[].length}`)
+  })
+
+  test('users duplicated across internal and non-internal sources are kept and added to the duplicateUsers binding', async () => {
+    const validUsers = [{ emailAddress: 'abc@test.com' }]
+    const errorUsers = []
+    const internalUsers = [validUsers, errorUsers].flat()
+    const nonInternalUsers = validUsers
+    getContainerContents.mockResolvedValue([internalUsers, nonInternalUsers])
+    validateUsers.mockReturnValue({ errorUsers, validUsers })
+
+    await combineDataSources(context)
+
+    const { bindings } = context
+    expect(bindings.duplicateUsers).toEqual(validUsers)
+    expect(bindings.errorUsers).toEqual(errorUsers)
+    expect(bindings.validUsers).toEqual(validUsers)
+  })
+
+  test('users duplicated across non-internal sources are removed and added to duplicateUsers binding', async () => {
+    const validUsers = [{ emailAddress: 'abc@test.com' }]
+    const errorUsers = []
+    const internalUsers = [validUsers, errorUsers].flat()
+    const nonInternalUsersOne = [{ emailAddress: 'xyz@test.com' }]
+    const nonInternalUsersTwo = nonInternalUsersOne
+    getContainerContents.mockResolvedValue([internalUsers, nonInternalUsersOne, nonInternalUsersTwo])
+    validateUsers.mockReturnValue({ errorUsers, validUsers })
+
+    await combineDataSources(context)
+
+    const { bindings } = context
+    expect(bindings.duplicateUsers).toEqual(nonInternalUsersOne)
+    expect(bindings.errorUsers).toEqual(errorUsers)
+    expect(bindings.validUsers).toEqual(validUsers)
+    expect(context.log).toHaveBeenNthCalledWith(2, `Valid user count: ${validUsers.length}\nError user count: ${errorUsers.length}\nDuplicate user count: ${nonInternalUsersOne.length}`)
   })
 
   test('an error is thrown (and logged) when an error occurs', async () => {
@@ -104,8 +129,8 @@ describe('CombineDataSources function', () => {
 
 describe('CombineDataSources bindings', () => {
   const { bindings: functionBindings } = require('./function')
-  const { errorUsersFilename, internalUsersFilename, validUsersFilename } = require('../lib/config')
-  const testEnvVars = require('../test/testEnvVars')
+  const { errorUsersFilename, duplicateUsersFilename, validUsersFilename } = require('../lib/config')
+  const testEnvVars = require('../test/test-env-vars')
 
   test('blobTrigger input binding is correct', () => {
     const bindings = functionBindings.filter((binding) => binding.direction === 'in')
@@ -114,12 +139,12 @@ describe('CombineDataSources bindings', () => {
     const binding = bindings[0]
     expect(binding.name).toEqual(inputBlobBindingName)
     expect(binding.type).toEqual('blobTrigger')
-    expect(binding.path).toEqual(`%${testEnvVars.DATA_SOURCES_CONTAINER}%/${internalUsersFilename}`)
+    expect(binding.path).toEqual(`%${testEnvVars.DATA_SOURCES_CONTAINER}%/{userDataBlobName}`)
   })
 
   test('output bindings are correct', () => {
     const bindings = functionBindings.filter((binding) => binding.direction === 'out')
-    expect(bindings).toHaveLength(2)
+    expect(bindings).toHaveLength(3)
 
     const validUsersBinding = bindings[0]
     expect(validUsersBinding.name).toEqual(validUsersOutputBindingName)
@@ -130,5 +155,10 @@ describe('CombineDataSources bindings', () => {
     expect(errorUsersBinding.name).toEqual(errorUsersOutputBindingName)
     expect(errorUsersBinding.type).toEqual('blob')
     expect(errorUsersBinding.path).toEqual(`%${testEnvVars.DATA_IMPORT_CONTAINER}%/${errorUsersFilename}`)
+
+    const duplicateUsersBinding = bindings[2]
+    expect(duplicateUsersBinding.name).toEqual(duplicateUsersOutputBindingName)
+    expect(duplicateUsersBinding.type).toEqual('blob')
+    expect(duplicateUsersBinding.path).toEqual(`%${testEnvVars.DATA_IMPORT_CONTAINER}%/${duplicateUsersFilename}`)
   })
 })

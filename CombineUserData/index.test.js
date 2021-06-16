@@ -1,6 +1,6 @@
 const { aadFilename, awFilename, internalUsersFilename } = require('../lib/config')
 
-const testEnvVars = require('../test/testEnvVars')
+const testEnvVars = require('../test/test-env-vars')
 
 const blobNameBinding = 'triggerFilename'
 const inputBindingName = 'blobContents'
@@ -8,10 +8,10 @@ const outputBindingName = 'internalUsers'
 
 describe('CombineUserData function', () => {
   jest.mock('@azure/storage-blob')
-  jest.mock('../lib/getBlobContents')
-  jest.mock('../lib/combineData')
+  jest.mock('../lib/get-blob-contents')
+  jest.mock('../lib/combine-data')
 
-  const context = require('../test/defaultContext')
+  const context = require('../test/default-context')
 
   const userData = [{ emailAddress: 'a@a.com' }]
   const triggerFileContents = Buffer.from(JSON.stringify(userData))
@@ -26,8 +26,8 @@ describe('CombineUserData function', () => {
     jest.resetModules()
     combineUserData = require('.')
     ContainerClient = require('@azure/storage-blob').ContainerClient
-    getBlobContents = require('../lib/getBlobContents')
-    combineData = require('../lib/combineData')
+    getBlobContents = require('../lib/get-blob-contents')
+    combineData = require('../lib/combine-data')
 
     context.bindingData[blobNameBinding] = ''
     context.bindings[inputBindingName] = triggerFileContents
@@ -50,7 +50,7 @@ describe('CombineUserData function', () => {
   })
 
   test('triggering for aw file will retreive aad file', async () => {
-    getBlobContents.mockImplementation(() => { return null })
+    getBlobContents.mockImplementation(() => { return undefined })
     context.bindingData[blobNameBinding] = awFilename
 
     await combineUserData(context)
@@ -60,7 +60,7 @@ describe('CombineUserData function', () => {
   })
 
   test('triggering for aad file will retreive aw file', async () => {
-    getBlobContents.mockImplementation(() => { return null })
+    getBlobContents.mockImplementation(() => { return undefined })
     context.bindingData[blobNameBinding] = aadFilename
 
     await combineUserData(context)
@@ -85,7 +85,7 @@ describe('CombineUserData function', () => {
   })
 
   test('a file returning no data logs a warning', async () => {
-    getBlobContents.mockImplementation(() => { return null })
+    getBlobContents.mockImplementation(() => { return undefined })
     context.bindingData[blobNameBinding] = aadFilename
 
     await combineUserData(context)

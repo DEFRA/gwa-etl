@@ -1,10 +1,10 @@
-const { generateUsersWithId } = require('../test/generateUsers')
-const testEnvVars = require('../test/testEnvVars')
+const { generateUsersWithId } = require('../test/generate-users')
+const testEnvVars = require('../test/test-env-vars')
 
 const outputBindingName = 'aadUsers'
 
 describe('ExtractAADData function', () => {
-  const context = require('../test/defaultContext')
+  const context = require('../test/default-context')
 
   function expectInitialFetchRequestIsCorrect () {
     const count = '$count=true'

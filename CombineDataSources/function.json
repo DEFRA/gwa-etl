@@ -4,7 +4,7 @@
       "name": "blobContents",
       "type": "blobTrigger",
       "direction": "in",
-      "path": "%DATA_SOURCES_CONTAINER%/internal-users.json",
+      "path": "%DATA_SOURCES_CONTAINER%/{userDataBlobName}",
       "connection": "AzureWebJobsStorage"
     },
     {
@@ -19,6 +19,13 @@
       "type": "blob",
       "direction": "out",
       "path": "%DATA_IMPORT_CONTAINER%/error-users.json",
+      "connection": "AzureWebJobsStorage"
+    },
+    {
+      "name": "duplicateUsers",
+      "type": "blob",
+      "direction": "out",
+      "path": "%DATA_IMPORT_CONTAINER%/duplicate-users.json",
       "connection": "AzureWebJobsStorage"
     }
   ]
