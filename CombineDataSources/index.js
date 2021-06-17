@@ -40,7 +40,7 @@ function categoriseNonInternalUsers (nonInternalUserMap) {
     }
     nonInternalDuplicateUsers.push(user)
     return false
-  })
+  }).map(x => x.user)
   return {
     nonInternalDuplicateUsers,
     nonInternalNonDuplicateUsers
