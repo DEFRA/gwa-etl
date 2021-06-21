@@ -48,7 +48,7 @@ module.exports = async function (context) {
 
     const count = '$count=true'
     const filter = '$filter=accountEnabled eq true and mail ne null'
-    const select = '$select=id,mail,givenName,surname,companyName,officeLocation'
+    const select = '$select=mail,givenName,surname,companyName,officeLocation'
     let url = `https://graph.microsoft.com/v1.0/users?${select}&${filter}&${count}`
 
     do {

@@ -3,6 +3,7 @@ const duplicateUsersOutputBindingName = 'duplicateUsers'
 const errorUsersOutputBindingName = 'errorUsers'
 const validUsersOutputBindingName = 'validUsers'
 const testEnvVars = require('../test/test-env-vars')
+const { generateUsersForCombining } = require('../test/generate-users')
 
 describe('CombineDataSources function', () => {
   const context = require('../test/default-context')
@@ -10,7 +11,6 @@ describe('CombineDataSources function', () => {
   let combineDataSources
   let ContainerClient
   let getContainerContents
-  let validateUsers
 
   beforeEach(() => {
     jest.clearAllMocks()
@@ -20,8 +20,6 @@ describe('CombineDataSources function', () => {
     jest.mock('@azure/storage-blob')
     jest.mock('../lib/get-container-contents')
     getContainerContents = require('../lib/get-container-contents')
-    jest.mock('../lib/validate-users')
-    validateUsers = require('../lib/validate-users')
 
     combineDataSources = require('.')
     context.bindingData = { blobTrigger: 'blobTrigger', userDataBlobName: 'userDataBlobName.json' }
@@ -35,7 +33,6 @@ describe('CombineDataSources function', () => {
 
   test('no data in internal users file and no other blobs', async () => {
     getContainerContents.mockResolvedValue([undefined])
-    validateUsers.mockReturnValue({ errorUsers: [], validUsers: [] })
 
     await combineDataSources(context)
 
@@ -49,34 +46,36 @@ describe('CombineDataSources function', () => {
   })
 
   test('valid and error users are bound correctly - internal users only', async () => {
-    const validUsers = [{ emailAddress: 'abc@test.com' }]
-    const errorUsers = [{ emailAddress: 'xyz@test.com' }]
-    const internalUsers = [validUsers, errorUsers].flat()
+    const users = generateUsersForCombining(5)
+    delete users[0].emailAddress
+    const errorUsers = [users[0]]
+    const internalUsers = [users[1], errorUsers].flat()
     getContainerContents.mockResolvedValue([internalUsers])
-    validateUsers.mockReturnValue({ errorUsers, validUsers })
 
     await combineDataSources(context)
 
     const { bindings } = context
     expect(bindings.duplicateUsers).toEqual([])
-    expect(bindings.errorUsers).toEqual(errorUsers)
-    expect(bindings.validUsers).toEqual(validUsers)
+    expect(bindings.errorUsers[0].error._original).toEqual(internalUsers[1])
+    expect(bindings.validUsers[0]).toEqual(internalUsers[0])
   })
 
   test('valid and error users are bound correctly - internal and non internal users', async () => {
-    const errorUsers = [{ emailAddress: 'xyz@test.com' }]
-    const internalUsers = [{ emailAddress: 'abc@test.com' }, errorUsers].flat()
-    const nonInternalUsersOne = [{ emailAddress: '123@test.com' }]
-    const nonInternalUsersTwo = [{ emailAddress: '456@test.com' }, { emailAddress: '789@test.com' }]
+    const users = generateUsersForCombining(5)
+    delete users[0].emailAddress
+    const errorUsers = [users[0]]
+    const internalUsers = [users[1], errorUsers].flat()
+    const nonInternalUsersOne = users[2]
+    const nonInternalUsersTwo = users.slice(4)
     getContainerContents.mockResolvedValue([internalUsers, nonInternalUsersOne, nonInternalUsersTwo])
     const validUsers = [internalUsers[0], nonInternalUsersOne, nonInternalUsersTwo].flat()
-    validateUsers.mockReturnValue({ errorUsers, validUsers })
 
     await combineDataSources(context)
 
     const { bindings } = context
     expect(bindings.duplicateUsers).toEqual([])
-    expect(bindings.errorUsers).toEqual(errorUsers)
+    expect(bindings.errorUsers).toHaveLength(1)
+    expect(bindings.errorUsers[0].error._original).toEqual(errorUsers[0])
     expect(bindings.validUsers).toEqual(validUsers)
     expect(context.log).toHaveBeenCalledTimes(2)
     expect(context.log).toHaveBeenNthCalledWith(1, 'Combine Data Sources Blob Trigger function activated:\n - Blob: blobTrigger\n - Name: userDataBlobName.json\n - Size: 0 Bytes')
@@ -84,12 +83,11 @@ describe('CombineDataSources function', () => {
   })
 
   test('users duplicated across internal and non-internal sources are kept and added to the duplicateUsers binding', async () => {
-    const validUsers = [{ emailAddress: 'abc@test.com' }]
+    const validUsers = generateUsersForCombining(1)
     const errorUsers = []
     const internalUsers = [validUsers, errorUsers].flat()
     const nonInternalUsers = validUsers
     getContainerContents.mockResolvedValue([internalUsers, nonInternalUsers])
-    validateUsers.mockReturnValue({ errorUsers, validUsers })
 
     await combineDataSources(context)
 
@@ -100,13 +98,13 @@ describe('CombineDataSources function', () => {
   })
 
   test('users duplicated across non-internal sources are removed and added to duplicateUsers binding', async () => {
-    const validUsers = [{ emailAddress: 'abc@test.com' }]
+    const users = generateUsersForCombining(2)
+    const validUsers = [users[0]]
     const errorUsers = []
     const internalUsers = [validUsers, errorUsers].flat()
-    const nonInternalUsersOne = [{ emailAddress: 'xyz@test.com' }]
+    const nonInternalUsersOne = [users[1]]
     const nonInternalUsersTwo = nonInternalUsersOne
     getContainerContents.mockResolvedValue([internalUsers, nonInternalUsersOne, nonInternalUsersTwo])
-    validateUsers.mockReturnValue({ errorUsers, validUsers })
 
     await combineDataSources(context)
 
