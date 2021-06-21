@@ -18,14 +18,12 @@ function categoriseInternalUsers (internalUsers, nonInternalUsersPossibleDuplica
   const internalUserMap = new Map(internalUsers.map(user => [user.emailAddress, user]))
 
   const internalDuplicateUsers = []
-  const nonInternalUsers = nonInternalUsersPossibleDuplicates
-    .filter(user => {
-      if (internalUserMap.has(user.emailAddress)) {
-        internalDuplicateUsers.push(user)
-        return false
-      }
-      return true
-    })
+  const nonInternalUsers = []
+  nonInternalUsersPossibleDuplicates.forEach(user => {
+    internalUserMap.has(user.emailAddress)
+      ? internalDuplicateUsers.push(user)
+      : nonInternalUsers.push(user)
+  })
   return {
     internalDuplicateUsers,
     nonInternalUsers
