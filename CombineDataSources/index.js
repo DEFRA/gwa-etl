@@ -37,12 +37,9 @@ function categoriseNonInternalUsers (nonInternalUserMap) {
   const nonInternalNonDuplicateUsers = []
 
   nonInternalUserMap.forEach(({ count, user }) => {
-    if (count === 1) {
-      nonInternalNonDuplicateUsers.push(user)
-      return true
-    }
-    nonInternalDuplicateUsers.push(user)
-    return false
+    count === 1
+      ? nonInternalNonDuplicateUsers.push(user)
+      : nonInternalDuplicateUsers.push(user)
   })
   return {
     nonInternalDuplicateUsers,
