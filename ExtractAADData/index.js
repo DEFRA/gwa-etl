@@ -14,8 +14,8 @@ const db = client.database(dbName)
 const refDataContainer = db.container(refDataContainerName)
 const officeLocationMapDocumentId = 'standardisedOfficeLocationMap'
 const organisationMapDocumentId = 'organisationMap'
-const unmappedOfficeCode = 'UNM:Unmapped-office-location'
-const unmappedOfficeLocation = 'Unmapped office location'
+const unmappedOfficeCode = 'UND:Unassigned'
+const unmappedOfficeLocation = 'Unassigned'
 const unmappedOrgCode = 'UFD'
 const unmappedOrgName = 'Undefined'
 
