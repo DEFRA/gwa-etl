@@ -152,8 +152,8 @@ describe('ExtractAADData function', () => {
       expect(user.surname).toEqual(users[i].surname)
       expect(user.orgCode).toEqual('UFD')
       expect(user.orgName).toEqual('Undefined')
-      expect(user.officeCode).toEqual('UNM:Unmapped-office-location')
-      expect(user.officeLocation).toEqual('Unmapped office location')
+      expect(user.officeCode).toEqual('UND:Unassigned')
+      expect(user.officeLocation).toEqual('Unassigned')
     })
   })
 
