@@ -1,5 +1,5 @@
 const { CosmosClient } = require('@azure/cosmos')
-const mapPhoneNumbers = require('../lib/map-phone-numbers')
+const { mapExistingUsersPhoneNumbers, mapUsersToImportPhoneNumbers } = require('../lib/map-phone-numbers')
 
 const connectionString = process.env.COSMOS_DB_CONNECTION_STRING
 const dbName = process.env.COSMOS_DB_NAME
@@ -103,25 +103,13 @@ function categoriseUsers (usersToImport, existingUsers) {
     user.active = true
     user.id = emailAddress
     user.importDate = importDate
-    user.phoneNumbers = mapPhoneNumbers(user)
+    user.phoneNumbers = mapUsersToImportPhoneNumbers(user)
     delete user.emailAddress
 
     const existingUser = existingUsersMap.get(emailAddress)
 
     if (existingUser) {
-      // Existing user phoneNumbers take precedence over the 'new' user.
-      // This process doesn't updated subscribedTo should org or office change.
-      const concat = [...new Set(user.phoneNumbers.concat(existingUser.phoneNumbers).map(pn => pn.number))]
-      const phoneNumbers = concat.map(pn => {
-        const userPn = user.phoneNumbers.find(x => x.number === pn)
-        const existingUserPn = existingUser.phoneNumbers.find(x => x.number === pn)
-        if (userPn && existingUserPn) {
-          return existingUserPn
-        }
-        return userPn ?? existingUserPn
-      })
-
-      user.phoneNumbers = phoneNumbers
+      user.phoneNumbers = mapExistingUsersPhoneNumbers(existingUser, user)
       usersUpdated.push({ ...existingUser, ...user })
       existingUsersMap.delete(emailAddress)
     } else {

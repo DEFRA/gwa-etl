@@ -1,7 +1,9 @@
 const testEnvVars = require('../test/test-env-vars')
 const { generateUsersToImport } = require('../test/generate-users')
+const { phoneNumberTypes } = require('../lib/constants')
 
 const inputBindingName = 'blobContents'
+const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 describe('ImportData function', () => {
   const context = require('../test/default-context')
@@ -9,7 +11,6 @@ describe('ImportData function', () => {
   Date.now = jest.fn(() => importDate)
 
   let importData
-  let mapPhoneNumbers
   let CosmosClient
   let bulkMock
   let containerMock
@@ -30,9 +31,6 @@ describe('ImportData function', () => {
 
     CosmosClient = require('@azure/cosmos').CosmosClient
     jest.mock('@azure/cosmos')
-    mapPhoneNumbers = require('../lib/map-phone-numbers')
-    jest.mock('../lib/map-phone-numbers')
-    mapPhoneNumbers.mockReturnValue([])
 
     bulkMock = jest.fn()
     fetchAllMock = jest.fn()
@@ -72,17 +70,15 @@ describe('ImportData function', () => {
     expect(context.log.warn).toHaveBeenCalledWith('No users to import, returning early.')
   })
 
-  test('an item to import with an existing record is updated (movers or no change)', async () => {
-    const existingUsers = [{ id: 'a@a.com', phoneNumbers: [{ number: '07000111111', subscribedTo: ['THIS', 'THAT'] }, { number: '07000333333' }], existingProp: 'existingProp', sharedProp: 'existingUser' }]
+  test('an item to import with an existing record (with a corporate phone number along with a new corporate phone number) is updated (movers or no change)', async () => {
+    const existingUsers = [{ id: 'a@a.com', phoneNumbers: [{ number: '07000111111', subscribedTo: ['THIS', 'THAT'], type: phoneNumberTypes.corporate }, { number: '07000333333', type: phoneNumberTypes.personal }], existingProp: 'existingProp', sharedProp: 'existingUser' }]
     const existingPhoneNumbers = existingUsers[0].phoneNumbers
     fetchAllMock.mockResolvedValueOnce({ resources: existingUsers })
-    const usersToImport = [{ emailAddress: 'A@A.COM', phoneNumbers: [], newProp: 'newProp', sharedProp: 'importUser' }]
+    const usersToImport = [{ emailAddress: 'A@A.COM', phoneNumbers: ['07000111111', '07000222222'], newProp: 'newProp', sharedProp: 'importUser' }]
     bindUsersForImport(usersToImport)
     bulkMock.mockResolvedValueOnce([
       { requestCharge: 10, resourceBody: { id: existingUsers[0].id }, statusCode: 200 }
     ])
-    const mappedPhoneNumbers = [{ number: '07000111111', subscribedTo: ['UNM:Unmapped'] }, { number: '07000222222', subscribedTo: ['UNM:Unmapped'] }]
-    mapPhoneNumbers.mockReturnValue(mappedPhoneNumbers)
 
     await importData(context)
 
@@ -99,17 +95,13 @@ describe('ImportData function', () => {
         importDate,
         newProp: usersToImport[0].newProp,
         phoneNumbers: [
-          { number: existingPhoneNumbers[0].number, subscribedTo: existingPhoneNumbers[0].subscribedTo },
-          { number: mappedPhoneNumbers[1].number, subscribedTo: mappedPhoneNumbers[1].subscribedTo },
-          { number: existingPhoneNumbers[1].number }
+          { number: existingPhoneNumbers[1].number, type: existingPhoneNumbers[1].type },
+          { number: existingPhoneNumbers[0].number, subscribedTo: existingPhoneNumbers[0].subscribedTo, type: existingPhoneNumbers[0].type },
+          { id: expect.stringMatching(uuidRegex), number: usersToImport[0].phoneNumbers[1], subscribedTo: ['UNK:Unknown'], type: phoneNumberTypes.corporate }
         ],
         sharedProp: usersToImport[0].sharedProp
       })
     }]))
-    expect(mapPhoneNumbers).toHaveBeenCalledTimes(1)
-    expect(mapPhoneNumbers).toHaveBeenCalledWith(expect.objectContaining({
-      id: usersToImport[0].emailAddress.toLowerCase()
-    }))
     expectLoggingToBeCorrect([
       `Users to import: ${usersToImport.length}.`,
       `Users already existing: ${existingUsers.length}.`,
@@ -124,6 +116,76 @@ describe('ImportData function', () => {
     ])
   })
 
+  test('an item to import with a different corporate phone number than the existing record will remove the existing and add the new number', async () => {
+    const existingUsers = [{ id: 'a@a.com', phoneNumbers: [{ number: '07000111111', type: phoneNumberTypes.corporate, subscribedTo: ['THIS', 'THAT'] }, { number: '07000333333', type: phoneNumberTypes.personal }] }]
+    const existingPhoneNumbers = existingUsers[0].phoneNumbers
+    fetchAllMock.mockResolvedValueOnce({ resources: existingUsers })
+    const usersToImport = [{ emailAddress: 'A@A.COM', phoneNumbers: ['07777222222'] }]
+    bindUsersForImport(usersToImport)
+    bulkMock.mockResolvedValueOnce([
+      { requestCharge: 10, resourceBody: { id: existingUsers[0].id }, statusCode: 200 }
+    ])
+
+    await importData(context)
+
+    expect(queryMock).toHaveBeenCalledTimes(1)
+    expect(queryMock).toHaveBeenCalledWith('SELECT * FROM c')
+    expect(bulkMock).toHaveBeenCalledTimes(1)
+    expect(bulkMock).toHaveBeenCalledWith(expect.arrayContaining([{
+      operationType: 'Upsert',
+      partitionKey: existingUsers[0].id,
+      resourceBody: expect.objectContaining({
+        active: true,
+        id: existingUsers[0].id,
+        importDate,
+        phoneNumbers: [
+          { number: existingPhoneNumbers[1].number, type: phoneNumberTypes.personal },
+          { id: expect.stringMatching(uuidRegex), number: usersToImport[0].phoneNumbers[0], type: phoneNumberTypes.corporate, subscribedTo: ['UNK:Unknown'] }
+        ]
+      })
+    }]))
+    expectLoggingToBeCorrect([
+      `Users to import: ${usersToImport.length}.`,
+      `Users already existing: ${existingUsers.length}.`,
+      'Running bulk operation for users in batch group 1 to 100.',
+      `Processing next batch in ${testEnvVars.IMPORT_BULK_BATCH_SLEEP_DURATION} milliseconds.`,
+      'Users updated successfully: 1\nUsers still to be updated: 0\nCost (RUs): 10.',
+      'After 1 attempt(s), 0 user(s) are still to be updated.',
+      'Total cost (RUs): 10.',
+      '0 user(s) created: .',
+      `1 user(s) updated: ${existingUsers[0].id}.`,
+      '0 user(s) inactive: .'
+    ])
+  })
+
+  test('an item to import with the existing record having no phone numbers will add the new number', async () => {
+    const existingUsers = [{ id: 'a@a.com', phoneNumbers: [] }]
+    fetchAllMock.mockResolvedValueOnce({ resources: existingUsers })
+    const usersToImport = [{ emailAddress: 'A@A.COM', phoneNumbers: ['07777222222'] }]
+    bindUsersForImport(usersToImport)
+    bulkMock.mockResolvedValueOnce([
+      { requestCharge: 10, resourceBody: { id: existingUsers[0].id }, statusCode: 200 }
+    ])
+
+    await importData(context)
+
+    expect(queryMock).toHaveBeenCalledTimes(1)
+    expect(queryMock).toHaveBeenCalledWith('SELECT * FROM c')
+    expect(bulkMock).toHaveBeenCalledTimes(1)
+    expect(bulkMock).toHaveBeenCalledWith(expect.arrayContaining([{
+      operationType: 'Upsert',
+      partitionKey: existingUsers[0].id,
+      resourceBody: expect.objectContaining({
+        active: true,
+        id: existingUsers[0].id,
+        importDate,
+        phoneNumbers: [
+          { id: expect.stringMatching(uuidRegex), number: usersToImport[0].phoneNumbers[0], type: phoneNumberTypes.corporate, subscribedTo: ['UNK:Unknown'] }
+        ]
+      })
+    }]))
+  })
+
   test('an item to import with no existing record is created (joiners) with correct schema', async () => {
     const existingUsers = []
     fetchAllMock.mockResolvedValueOnce({ resources: existingUsers })
@@ -132,8 +194,6 @@ describe('ImportData function', () => {
     bulkMock.mockResolvedValueOnce([
       { requestCharge: 10, resourceBody: { id: usersToImport[0].emailAddress.toLowerCase() }, statusCode: 201 }
     ])
-    const mappedPhoneNumbers = [{ data: 'from-phonenumber-mock' }]
-    mapPhoneNumbers.mockReturnValue(mappedPhoneNumbers)
 
     await importData(context)
 
@@ -148,14 +208,10 @@ describe('ImportData function', () => {
         id: usersToImport[0].emailAddress.toLowerCase(),
         importDate,
         newProp: usersToImport[0].newProp,
-        phoneNumbers: mappedPhoneNumbers,
+        phoneNumbers: [],
         sharedProp: usersToImport[0].sharedProp
       })
     }]))
-    expect(mapPhoneNumbers).toHaveBeenCalledTimes(1)
-    expect(mapPhoneNumbers).toHaveBeenCalledWith(expect.objectContaining({
-      id: usersToImport[0].emailAddress.toLowerCase()
-    }))
     expectLoggingToBeCorrect([
       `Users to import: ${usersToImport.length}.`,
       `Users already existing: ${existingUsers.length}.`,
