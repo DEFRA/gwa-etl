@@ -1,5 +1,5 @@
 const { CosmosClient } = require('@azure/cosmos')
-const mapPhoneNumbers = require('../lib/map-phone-numbers')
+const { mapExistingUsersPhoneNumbers, mapUsersToImportPhoneNumbers } = require('../lib/map-phone-numbers')
 
 const connectionString = process.env.COSMOS_DB_CONNECTION_STRING
 const dbName = process.env.COSMOS_DB_NAME
@@ -10,11 +10,6 @@ const usersContainerName = process.env.COSMOS_DB_USERS_CONTAINER
 const client = new CosmosClient(connectionString)
 const db = client.database(dbName)
 const usersContainer = db.container(usersContainerName)
-
-const phoneNumberTypes = {
-  corporate: 'corporate',
-  personal: 'personal'
-}
 
 async function sleep (milliseconds) {
   await new Promise(resolve => setTimeout(resolve, milliseconds))
@@ -108,28 +103,13 @@ function categoriseUsers (usersToImport, existingUsers) {
     user.active = true
     user.id = emailAddress
     user.importDate = importDate
-    user.phoneNumbers = mapPhoneNumbers(user)
+    user.phoneNumbers = mapUsersToImportPhoneNumbers(user)
     delete user.emailAddress
 
     const existingUser = existingUsersMap.get(emailAddress)
 
     if (existingUser) {
-      const personalPNs = existingUser.phoneNumbers.filter(x => x.type === phoneNumberTypes.personal)
-      const newCorporatePNs = user.phoneNumbers.filter(x => x.type === phoneNumberTypes.corporate)
-      const oldCorporatePNs = existingUser.phoneNumbers.filter(x => x.type === phoneNumberTypes.corporate)
-
-      // Existing user's corporatePN details take precedence.
-      const corporatePNs = []
-      const oldCorporateNumbers = oldCorporatePNs.map(x => x.number)
-      newCorporatePNs.forEach(pn => {
-        if (oldCorporateNumbers.includes(pn.number)) {
-          corporatePNs.push(oldCorporatePNs.find(x => x.number === pn.number))
-        } else {
-          corporatePNs.push(pn)
-        }
-      })
-
-      user.phoneNumbers = personalPNs.concat(corporatePNs)
+      user.phoneNumbers = mapExistingUsersPhoneNumbers(existingUser, user)
       usersUpdated.push({ ...existingUser, ...user })
       existingUsersMap.delete(emailAddress)
     } else {
