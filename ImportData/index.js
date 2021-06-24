@@ -11,6 +11,11 @@ const client = new CosmosClient(connectionString)
 const db = client.database(dbName)
 const usersContainer = db.container(usersContainerName)
 
+const phoneNumberTypes = {
+  corporate: 'corporate',
+  personal: 'personal'
+}
+
 async function sleep (milliseconds) {
   await new Promise(resolve => setTimeout(resolve, milliseconds))
 }
@@ -109,19 +114,22 @@ function categoriseUsers (usersToImport, existingUsers) {
     const existingUser = existingUsersMap.get(emailAddress)
 
     if (existingUser) {
-      // Existing user phoneNumbers take precedence over the 'new' user.
-      // This process doesn't updated subscribedTo should org or office change.
-      const concat = [...new Set(user.phoneNumbers.concat(existingUser.phoneNumbers).map(pn => pn.number))]
-      const phoneNumbers = concat.map(pn => {
-        const userPn = user.phoneNumbers.find(x => x.number === pn)
-        const existingUserPn = existingUser.phoneNumbers.find(x => x.number === pn)
-        if (userPn && existingUserPn) {
-          return existingUserPn
+      const personalPNs = existingUser.phoneNumbers.filter(x => x.type === phoneNumberTypes.personal)
+      const newCorporatePNs = user.phoneNumbers.filter(x => x.type === phoneNumberTypes.corporate)
+      const oldCorporatePNs = existingUser.phoneNumbers.filter(x => x.type === phoneNumberTypes.corporate)
+
+      // Existing user's corporatePN details take precedence.
+      const corporatePNs = []
+      const oldCorporateNumbers = oldCorporatePNs.map(x => x.number)
+      newCorporatePNs.forEach(pn => {
+        if (oldCorporateNumbers.includes(pn.number)) {
+          corporatePNs.push(oldCorporatePNs.find(x => x.number === pn.number))
+        } else {
+          corporatePNs.push(pn)
         }
-        return userPn ?? existingUserPn
       })
 
-      user.phoneNumbers = phoneNumbers
+      user.phoneNumbers = personalPNs.concat(corporatePNs)
       usersUpdated.push({ ...existingUser, ...user })
       existingUsersMap.delete(emailAddress)
     } else {
