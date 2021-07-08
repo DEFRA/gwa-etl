@@ -71,10 +71,10 @@ describe('ImportData function', () => {
   })
 
   test('an item to import with an existing record (with a corporate phone number along with a new corporate phone number) is updated (movers or no change)', async () => {
-    const existingUsers = [{ id: 'a@a.com', phoneNumbers: [{ number: '07000111111', subscribedTo: ['THIS', 'THAT'], type: phoneNumberTypes.corporate }, { number: '07000333333', type: phoneNumberTypes.personal }], existingProp: 'existingProp', sharedProp: 'existingUser' }]
+    const existingUsers = [{ id: 'a@a.com', phoneNumbers: [{ number: '07700111111', subscribedTo: ['THIS', 'THAT'], type: phoneNumberTypes.corporate }, { number: '07700333333', type: phoneNumberTypes.personal }], existingProp: 'existingProp', sharedProp: 'existingUser' }]
     const existingPhoneNumbers = existingUsers[0].phoneNumbers
     fetchAllMock.mockResolvedValueOnce({ resources: existingUsers })
-    const usersToImport = [{ emailAddress: 'A@A.COM', phoneNumbers: ['07000111111', '07000222222'], newProp: 'newProp', sharedProp: 'importUser' }]
+    const usersToImport = [{ emailAddress: 'A@A.COM', phoneNumbers: ['07700111111', '07700222222'], newProp: 'newProp', sharedProp: 'importUser' }]
     bindUsersForImport(usersToImport)
     bulkMock.mockResolvedValueOnce([
       { requestCharge: 10, resourceBody: { id: existingUsers[0].id }, statusCode: 200 }
@@ -117,7 +117,7 @@ describe('ImportData function', () => {
   })
 
   test('an item to import with a different corporate phone number than the existing record will remove the existing and add the new number', async () => {
-    const existingUsers = [{ id: 'a@a.com', phoneNumbers: [{ number: '07000111111', type: phoneNumberTypes.corporate, subscribedTo: ['THIS', 'THAT'] }, { number: '07000333333', type: phoneNumberTypes.personal }] }]
+    const existingUsers = [{ id: 'a@a.com', phoneNumbers: [{ number: '07700111111', type: phoneNumberTypes.corporate, subscribedTo: ['THIS', 'THAT'] }, { number: '07700333333', type: phoneNumberTypes.personal }] }]
     const existingPhoneNumbers = existingUsers[0].phoneNumbers
     fetchAllMock.mockResolvedValueOnce({ resources: existingUsers })
     const usersToImport = [{ emailAddress: 'A@A.COM', phoneNumbers: ['07777222222'] }]

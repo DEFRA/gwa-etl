@@ -135,8 +135,8 @@ describe('ExtractAWData function', () => {
   })
 
   test('users with multiple devices with the same number result in a single number', async () => {
-    const device1 = { ModelId: { Id: { Value: 1 } }, PhoneNumber: '07000111222', UserEmailAddress: 'a@a.com' }
-    const device2 = { ModelId: { Id: { Value: 1 } }, PhoneNumber: '07000111222', UserEmailAddress: 'a@a.com' }
+    const device1 = { ModelId: { Id: { Value: 1 } }, PhoneNumber: '07700111222', UserEmailAddress: 'a@a.com' }
+    const device2 = { ModelId: { Id: { Value: 1 } }, PhoneNumber: '07700111222', UserEmailAddress: 'a@a.com' }
     const expectedResponse = { Devices: [device1, device2], Page: 0, PageSize, Total: 0 }
     mockFetchResolvedJsonValueOnce(expectedResponse)
 
