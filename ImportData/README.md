@@ -13,6 +13,12 @@ movers i.e. changes in organisation, location, phone number(s), etc.). Users
 already in the database and not in the import dataset will be marked
 as inactive (accounting for leavers).
 
+The function also generates a CSV file of phone numbers of active users and
+uploads it to a blob storage container. The intention of the file is to be used
+as an emergency contact list that could be uploaded directly to GOV.UK Notify.
+This could be needed if the web app became unavailable for any reason.
+The file is just a list of all active user's phone numbers and nothing more.
+
 The data being imported is merged with the existing data, with precedence given
 to the new data. Therefore, should additional data already exist for any
 existing users e.g. personal phone numbers, this will be maintained during the
