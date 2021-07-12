@@ -1,4 +1,6 @@
 const { CosmosClient } = require('@azure/cosmos')
+
+const getActivePhoneNumbers = require('../lib/get-active-phone-numbers')
 const { mapExistingUsersPhoneNumbers, mapUsersToImportPhoneNumbers } = require('../lib/map-phone-numbers')
 
 const connectionString = process.env.COSMOS_DB_CONNECTION_STRING
@@ -87,6 +89,7 @@ async function upsertUsers (context, container, allUsers) {
   context.log(`After ${attempt} attempt(s), ${userMap.size} user(s) are still to be updated.`)
   context.log(`Total cost (RUs): ${cost}.`)
 
+  // TODO: Remove logging of the user ids
   context.log(`${usersCreated.length} user(s) created: ${usersCreated.map(user => user.id)}.`)
   context.log(`${usersUpdated.length} user(s) updated: ${usersUpdated.map(user => user.id)}.`)
   context.log(`${usersInactive.length} user(s) inactive: ${usersInactive.map(user => user.id)}.`)
@@ -138,6 +141,11 @@ async function getExistingUsers (container) {
   return (await container.items.query('SELECT * FROM c').fetchAll()).resources
 }
 
+function savePhoneNumbersCSV (context, users) {
+  const header = 'phone number'
+  context.bindings.phoneNumbers = `${header}\n${getActivePhoneNumbers(users).join('\n')}`
+}
+
 module.exports = async function (context) {
   try {
     const usersToImport = getUsersToImport(context)
@@ -153,6 +161,7 @@ module.exports = async function (context) {
 
     const users = categoriseUsers(usersToImport, existingUsers)
 
+    savePhoneNumbersCSV(context, users)
     await upsertUsers(context, usersContainer, users)
   } catch (e) {
     context.log.error(e)

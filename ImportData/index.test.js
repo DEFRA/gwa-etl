@@ -3,6 +3,7 @@ const { generateUsersToImport } = require('../test/generate-users')
 const { phoneNumberTypes } = require('../lib/constants')
 
 const inputBindingName = 'blobContents'
+const outputBindingName = 'phoneNumbers'
 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 describe('ImportData function', () => {
@@ -23,6 +24,10 @@ describe('ImportData function', () => {
 
   function expectLoggingToBeCorrect (logs) {
     logs.forEach((log, i) => expect(context.log).toHaveBeenNthCalledWith(i + 1, log))
+  }
+
+  function getExpectedPhoneNumberOutput (phoneNumbers) {
+    return `phone number\n${phoneNumbers.map(pn => `${pn.slice(0, 5)} ${pn.slice(5)}`).join('\n')}`
   }
 
   beforeEach(() => {
@@ -102,6 +107,11 @@ describe('ImportData function', () => {
         sharedProp: usersToImport[0].sharedProp
       })
     }]))
+    expect(context.bindings).toHaveProperty(outputBindingName)
+    const phoneNumbersOutput = context.bindings[outputBindingName]
+    const expectedPhoneNumbers = getExpectedPhoneNumberOutput([existingPhoneNumbers[1].number, existingPhoneNumbers[0].number, usersToImport[0].phoneNumbers[1]])
+    expect(phoneNumbersOutput).toHaveLength(expectedPhoneNumbers.length)
+    expect(phoneNumbersOutput).toEqual(expectedPhoneNumbers)
     expectLoggingToBeCorrect([
       `Users to import: ${usersToImport.length}.`,
       `Users already existing: ${existingUsers.length}.`,
@@ -144,6 +154,11 @@ describe('ImportData function', () => {
         ]
       })
     }]))
+    expect(context.bindings).toHaveProperty(outputBindingName)
+    const phoneNumbersOutput = context.bindings[outputBindingName]
+    const expectedPhoneNumbers = getExpectedPhoneNumberOutput([existingPhoneNumbers[1].number, usersToImport[0].phoneNumbers[0]])
+    expect(phoneNumbersOutput).toHaveLength(expectedPhoneNumbers.length)
+    expect(phoneNumbersOutput).toEqual(expectedPhoneNumbers)
     expectLoggingToBeCorrect([
       `Users to import: ${usersToImport.length}.`,
       `Users already existing: ${existingUsers.length}.`,
@@ -184,6 +199,11 @@ describe('ImportData function', () => {
         ]
       })
     }]))
+    expect(context.bindings).toHaveProperty(outputBindingName)
+    const phoneNumbersOutput = context.bindings[outputBindingName]
+    const expectedPhoneNumbers = getExpectedPhoneNumberOutput([usersToImport[0].phoneNumbers[0]])
+    expect(phoneNumbersOutput).toHaveLength(expectedPhoneNumbers.length)
+    expect(phoneNumbersOutput).toEqual(expectedPhoneNumbers)
   })
 
   test('an item to import with no existing record is created (joiners) with correct schema', async () => {
@@ -212,6 +232,11 @@ describe('ImportData function', () => {
         sharedProp: usersToImport[0].sharedProp
       })
     }]))
+    expect(context.bindings).toHaveProperty(outputBindingName)
+    const phoneNumbersOutput = context.bindings[outputBindingName]
+    const expectedPhoneNumbers = getExpectedPhoneNumberOutput([])
+    expect(phoneNumbersOutput).toHaveLength(expectedPhoneNumbers.length)
+    expect(phoneNumbersOutput).toEqual(expectedPhoneNumbers)
     expectLoggingToBeCorrect([
       `Users to import: ${usersToImport.length}.`,
       `Users already existing: ${existingUsers.length}.`,
@@ -254,6 +279,11 @@ describe('ImportData function', () => {
       })
     }]
     expect(bulkMock).toHaveBeenCalledWith(expect.arrayContaining(expected))
+    expect(context.bindings).toHaveProperty(outputBindingName)
+    const phoneNumbersOutput = context.bindings[outputBindingName]
+    const expectedPhoneNumbers = getExpectedPhoneNumberOutput([])
+    expect(phoneNumbersOutput).toHaveLength(expectedPhoneNumbers.length)
+    expect(phoneNumbersOutput).toEqual(expectedPhoneNumbers)
     expectLoggingToBeCorrect([
       `Users to import: ${usersToImport.length}.`,
       `Users already existing: ${existingUsers.length}.`,
@@ -420,5 +450,15 @@ describe('ImportData bindings', () => {
     expect(binding.type).toEqual('blobTrigger')
     expect(binding.path).toEqual(`%${testEnvVars.DATA_IMPORT_CONTAINER}%/${validUsersFilename}`)
     expect(binding.connection).toEqual('AzureWebJobsStorage')
+  })
+
+  test('output binding is correct', () => {
+    const bindings = functionBindings.filter((binding) => binding.direction === 'out')
+    expect(bindings).toHaveLength(1)
+
+    const binding = bindings[0]
+    expect(binding.name).toEqual(outputBindingName)
+    expect(binding.type).toEqual('blob')
+    expect(binding.path).toEqual(`%${testEnvVars.PHONE_NUMBERS_CONTAINER}%/phone-numbers.csv`)
   })
 })
