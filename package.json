@@ -11,6 +11,7 @@
     "@azure/cosmos": "^3.11.0",
     "@azure/msal-node": "^1.0.3",
     "@azure/storage-blob": "^12.5.0",
+    "google-libphonenumber": "^3.2.21",
     "joi": "^17.4.0",
     "node-fetch": "^2.6.1",
     "uuid": "^8.3.2"

@@ -3,6 +3,7 @@ const { generateUsersToImport } = require('../test/generate-users')
 const { phoneNumberTypes } = require('../lib/constants')
 
 const inputBindingName = 'blobContents'
+const outputBindingName = 'phoneNumbers'
 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 describe('ImportData function', () => {
@@ -23,6 +24,10 @@ describe('ImportData function', () => {
 
   function expectLoggingToBeCorrect (logs) {
     logs.forEach((log, i) => expect(context.log).toHaveBeenNthCalledWith(i + 1, log))
+  }
+
+  function getExpectedPhoneNumberOutput (phoneNumbers) {
+    return `phone number\n${phoneNumbers.map(pn => `${pn.slice(0, 5)} ${pn.slice(5)}`).join('\n')}`
   }
 
   beforeEach(() => {
@@ -71,10 +76,10 @@ describe('ImportData function', () => {
   })
 
   test('an item to import with an existing record (with a corporate phone number along with a new corporate phone number) is updated (movers or no change)', async () => {
-    const existingUsers = [{ id: 'a@a.com', phoneNumbers: [{ number: '07000111111', subscribedTo: ['THIS', 'THAT'], type: phoneNumberTypes.corporate }, { number: '07000333333', type: phoneNumberTypes.personal }], existingProp: 'existingProp', sharedProp: 'existingUser' }]
+    const existingUsers = [{ id: 'a@a.com', phoneNumbers: [{ number: '07700111111', subscribedTo: ['THIS', 'THAT'], type: phoneNumberTypes.corporate }, { number: '07700333333', type: phoneNumberTypes.personal }], existingProp: 'existingProp', sharedProp: 'existingUser' }]
     const existingPhoneNumbers = existingUsers[0].phoneNumbers
     fetchAllMock.mockResolvedValueOnce({ resources: existingUsers })
-    const usersToImport = [{ emailAddress: 'A@A.COM', phoneNumbers: ['07000111111', '07000222222'], newProp: 'newProp', sharedProp: 'importUser' }]
+    const usersToImport = [{ emailAddress: 'A@A.COM', phoneNumbers: ['07700111111', '07700222222'], newProp: 'newProp', sharedProp: 'importUser' }]
     bindUsersForImport(usersToImport)
     bulkMock.mockResolvedValueOnce([
       { requestCharge: 10, resourceBody: { id: existingUsers[0].id }, statusCode: 200 }
@@ -102,6 +107,11 @@ describe('ImportData function', () => {
         sharedProp: usersToImport[0].sharedProp
       })
     }]))
+    expect(context.bindings).toHaveProperty(outputBindingName)
+    const phoneNumbersOutput = context.bindings[outputBindingName]
+    const expectedPhoneNumbers = getExpectedPhoneNumberOutput([existingPhoneNumbers[1].number, existingPhoneNumbers[0].number, usersToImport[0].phoneNumbers[1]])
+    expect(phoneNumbersOutput).toHaveLength(expectedPhoneNumbers.length)
+    expect(phoneNumbersOutput).toEqual(expectedPhoneNumbers)
     expectLoggingToBeCorrect([
       `Users to import: ${usersToImport.length}.`,
       `Users already existing: ${existingUsers.length}.`,
@@ -110,14 +120,14 @@ describe('ImportData function', () => {
       'Users updated successfully: 1\nUsers still to be updated: 0\nCost (RUs): 10.',
       'After 1 attempt(s), 0 user(s) are still to be updated.',
       'Total cost (RUs): 10.',
-      '0 user(s) created: .',
-      `1 user(s) updated: ${existingUsers[0].id}.`,
-      '0 user(s) inactive: .'
+      '0 user(s) created.',
+      '1 user(s) updated.',
+      '0 user(s) inactive.'
     ])
   })
 
   test('an item to import with a different corporate phone number than the existing record will remove the existing and add the new number', async () => {
-    const existingUsers = [{ id: 'a@a.com', phoneNumbers: [{ number: '07000111111', type: phoneNumberTypes.corporate, subscribedTo: ['THIS', 'THAT'] }, { number: '07000333333', type: phoneNumberTypes.personal }] }]
+    const existingUsers = [{ id: 'a@a.com', phoneNumbers: [{ number: '07700111111', type: phoneNumberTypes.corporate, subscribedTo: ['THIS', 'THAT'] }, { number: '07700333333', type: phoneNumberTypes.personal }] }]
     const existingPhoneNumbers = existingUsers[0].phoneNumbers
     fetchAllMock.mockResolvedValueOnce({ resources: existingUsers })
     const usersToImport = [{ emailAddress: 'A@A.COM', phoneNumbers: ['07777222222'] }]
@@ -144,6 +154,11 @@ describe('ImportData function', () => {
         ]
       })
     }]))
+    expect(context.bindings).toHaveProperty(outputBindingName)
+    const phoneNumbersOutput = context.bindings[outputBindingName]
+    const expectedPhoneNumbers = getExpectedPhoneNumberOutput([existingPhoneNumbers[1].number, usersToImport[0].phoneNumbers[0]])
+    expect(phoneNumbersOutput).toHaveLength(expectedPhoneNumbers.length)
+    expect(phoneNumbersOutput).toEqual(expectedPhoneNumbers)
     expectLoggingToBeCorrect([
       `Users to import: ${usersToImport.length}.`,
       `Users already existing: ${existingUsers.length}.`,
@@ -152,9 +167,9 @@ describe('ImportData function', () => {
       'Users updated successfully: 1\nUsers still to be updated: 0\nCost (RUs): 10.',
       'After 1 attempt(s), 0 user(s) are still to be updated.',
       'Total cost (RUs): 10.',
-      '0 user(s) created: .',
-      `1 user(s) updated: ${existingUsers[0].id}.`,
-      '0 user(s) inactive: .'
+      '0 user(s) created.',
+      '1 user(s) updated.',
+      '0 user(s) inactive.'
     ])
   })
 
@@ -184,6 +199,11 @@ describe('ImportData function', () => {
         ]
       })
     }]))
+    expect(context.bindings).toHaveProperty(outputBindingName)
+    const phoneNumbersOutput = context.bindings[outputBindingName]
+    const expectedPhoneNumbers = getExpectedPhoneNumberOutput([usersToImport[0].phoneNumbers[0]])
+    expect(phoneNumbersOutput).toHaveLength(expectedPhoneNumbers.length)
+    expect(phoneNumbersOutput).toEqual(expectedPhoneNumbers)
   })
 
   test('an item to import with no existing record is created (joiners) with correct schema', async () => {
@@ -212,6 +232,11 @@ describe('ImportData function', () => {
         sharedProp: usersToImport[0].sharedProp
       })
     }]))
+    expect(context.bindings).toHaveProperty(outputBindingName)
+    const phoneNumbersOutput = context.bindings[outputBindingName]
+    const expectedPhoneNumbers = getExpectedPhoneNumberOutput([])
+    expect(phoneNumbersOutput).toHaveLength(expectedPhoneNumbers.length)
+    expect(phoneNumbersOutput).toEqual(expectedPhoneNumbers)
     expectLoggingToBeCorrect([
       `Users to import: ${usersToImport.length}.`,
       `Users already existing: ${existingUsers.length}.`,
@@ -220,9 +245,9 @@ describe('ImportData function', () => {
       'Users updated successfully: 1\nUsers still to be updated: 0\nCost (RUs): 10.',
       'After 1 attempt(s), 0 user(s) are still to be updated.',
       'Total cost (RUs): 10.',
-      `1 user(s) created: ${usersToImport[0].emailAddress.toLowerCase()}.`,
-      '0 user(s) updated: .',
-      '0 user(s) inactive: .'
+      '1 user(s) created.',
+      '0 user(s) updated.',
+      '0 user(s) inactive.'
     ])
   })
 
@@ -254,6 +279,11 @@ describe('ImportData function', () => {
       })
     }]
     expect(bulkMock).toHaveBeenCalledWith(expect.arrayContaining(expected))
+    expect(context.bindings).toHaveProperty(outputBindingName)
+    const phoneNumbersOutput = context.bindings[outputBindingName]
+    const expectedPhoneNumbers = getExpectedPhoneNumberOutput([])
+    expect(phoneNumbersOutput).toHaveLength(expectedPhoneNumbers.length)
+    expect(phoneNumbersOutput).toEqual(expectedPhoneNumbers)
     expectLoggingToBeCorrect([
       `Users to import: ${usersToImport.length}.`,
       `Users already existing: ${existingUsers.length}.`,
@@ -262,9 +292,9 @@ describe('ImportData function', () => {
       'Users updated successfully: 2\nUsers still to be updated: 0\nCost (RUs): 20.',
       'After 1 attempt(s), 0 user(s) are still to be updated.',
       'Total cost (RUs): 20.',
-      `1 user(s) created: ${usersToImport[0].emailAddress.toLowerCase()}.`,
-      '0 user(s) updated: .',
-      `1 user(s) inactive: ${existingUsers[0].id}.`
+      '1 user(s) created.',
+      '0 user(s) updated.',
+      '1 user(s) inactive.'
     ])
   })
 
@@ -420,5 +450,15 @@ describe('ImportData bindings', () => {
     expect(binding.type).toEqual('blobTrigger')
     expect(binding.path).toEqual(`%${testEnvVars.DATA_IMPORT_CONTAINER}%/${validUsersFilename}`)
     expect(binding.connection).toEqual('AzureWebJobsStorage')
+  })
+
+  test('output binding is correct', () => {
+    const bindings = functionBindings.filter((binding) => binding.direction === 'out')
+    expect(bindings).toHaveLength(1)
+
+    const binding = bindings[0]
+    expect(binding.name).toEqual(outputBindingName)
+    expect(binding.type).toEqual('blob')
+    expect(binding.path).toEqual(`%${testEnvVars.PHONE_NUMBERS_CONTAINER}%/phone-numbers.csv`)
   })
 })
