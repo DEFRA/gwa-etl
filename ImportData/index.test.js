@@ -120,9 +120,9 @@ describe('ImportData function', () => {
       'Users updated successfully: 1\nUsers still to be updated: 0\nCost (RUs): 10.',
       'After 1 attempt(s), 0 user(s) are still to be updated.',
       'Total cost (RUs): 10.',
-      '0 user(s) created: .',
-      `1 user(s) updated: ${existingUsers[0].id}.`,
-      '0 user(s) inactive: .'
+      '0 user(s) created.',
+      '1 user(s) updated.',
+      '0 user(s) inactive.'
     ])
   })
 
@@ -167,9 +167,9 @@ describe('ImportData function', () => {
       'Users updated successfully: 1\nUsers still to be updated: 0\nCost (RUs): 10.',
       'After 1 attempt(s), 0 user(s) are still to be updated.',
       'Total cost (RUs): 10.',
-      '0 user(s) created: .',
-      `1 user(s) updated: ${existingUsers[0].id}.`,
-      '0 user(s) inactive: .'
+      '0 user(s) created.',
+      '1 user(s) updated.',
+      '0 user(s) inactive.'
     ])
   })
 
@@ -245,9 +245,9 @@ describe('ImportData function', () => {
       'Users updated successfully: 1\nUsers still to be updated: 0\nCost (RUs): 10.',
       'After 1 attempt(s), 0 user(s) are still to be updated.',
       'Total cost (RUs): 10.',
-      `1 user(s) created: ${usersToImport[0].emailAddress.toLowerCase()}.`,
-      '0 user(s) updated: .',
-      '0 user(s) inactive: .'
+      '1 user(s) created.',
+      '0 user(s) updated.',
+      '0 user(s) inactive.'
     ])
   })
 
@@ -292,9 +292,9 @@ describe('ImportData function', () => {
       'Users updated successfully: 2\nUsers still to be updated: 0\nCost (RUs): 20.',
       'After 1 attempt(s), 0 user(s) are still to be updated.',
       'Total cost (RUs): 20.',
-      `1 user(s) created: ${usersToImport[0].emailAddress.toLowerCase()}.`,
-      '0 user(s) updated: .',
-      `1 user(s) inactive: ${existingUsers[0].id}.`
+      '1 user(s) created.',
+      '0 user(s) updated.',
+      '1 user(s) inactive.'
     ])
   })
 

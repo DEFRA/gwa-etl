@@ -89,10 +89,9 @@ async function upsertUsers (context, container, allUsers) {
   context.log(`After ${attempt} attempt(s), ${userMap.size} user(s) are still to be updated.`)
   context.log(`Total cost (RUs): ${cost}.`)
 
-  // TODO: Remove logging of the user ids
-  context.log(`${usersCreated.length} user(s) created: ${usersCreated.map(user => user.id)}.`)
-  context.log(`${usersUpdated.length} user(s) updated: ${usersUpdated.map(user => user.id)}.`)
-  context.log(`${usersInactive.length} user(s) inactive: ${usersInactive.map(user => user.id)}.`)
+  context.log(`${usersCreated.length} user(s) created.`)
+  context.log(`${usersUpdated.length} user(s) updated.`)
+  context.log(`${usersInactive.length} user(s) inactive.`)
 }
 
 function categoriseUsers (usersToImport, existingUsers) {
