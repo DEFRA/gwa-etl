@@ -60,19 +60,19 @@ module.exports = async function (context) {
         }
       })
       const data = await response.json()
-      const users = data.value
-      users.forEach(user => {
-        user.emailAddress = user.mail.toLowerCase()
-        delete user.mail
-
+      const users = data.value.map(user => {
         const office = officeLocationMap.get(user.officeLocation)
-        user.officeLocation = office?.officeLocation ?? unmappedOfficeLocation
-        user.officeCode = office?.officeCode ?? unmappedOfficeCode
-
         const org = organisationMap.get(user.companyName)
-        user.orgCode = org?.orgCode ?? unmappedOrgCode
-        user.orgName = org?.orgName ?? unmappedOrgName
-        delete user.companyName
+
+        return {
+          emailAddress: user.mail.toLowerCase(),
+          givenName: user.givenName,
+          officeCode: office?.officeCode ?? unmappedOfficeCode,
+          officeLocation: office?.officeLocation ?? unmappedOfficeLocation,
+          orgCode: org?.orgCode ?? unmappedOrgCode,
+          orgName: org?.orgName ?? unmappedOrgName,
+          surname: user.surname
+        }
       })
       processedUsers = processedUsers.concat(users)
       url = data['@odata.nextLink']
