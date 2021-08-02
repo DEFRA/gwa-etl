@@ -134,9 +134,13 @@ describe('ExtractAADData function', () => {
     expect(context.log).toHaveBeenNthCalledWith(5, `Data extract from AAD is complete.\n${users.length} user(s) have been processed.`)
   })
 
-  test('user data is correct and bound to output binding', async () => {
+  test('user data is correct and bound to output binding with specific properties', async () => {
+    const additionalProperty = '@odata.id'
     const numberOfUsers = 100
     const users = generateUsersWithId(numberOfUsers)
+    users.forEach(u => {
+      u[additionalProperty] = 'additional property not wanted on bound data'
+    })
     const expectedResponse = { value: JSON.parse(JSON.stringify(users)) }
     mockFetchResolvedJsonValueOnce(expectedResponse)
 
@@ -146,7 +150,7 @@ describe('ExtractAADData function', () => {
     expect(context.bindings[outputBindingName]).toHaveLength(numberOfUsers)
     context.bindings[outputBindingName].forEach((user, i) => {
       expect(user).not.toHaveProperty('mail')
-      expect(user.id).toEqual(users[i].id)
+      expect(user[additionalProperty]).toBeUndefined()
       expect(user.emailAddress).toEqual(users[i].mail.toLowerCase())
       expect(user.givenName).toEqual(users[i].givenName)
       expect(user.surname).toEqual(users[i].surname)
