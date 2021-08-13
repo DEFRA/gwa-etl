@@ -3,13 +3,16 @@ if [ -z "$1" ]; then
   echo "Please enter the name of a function you would like to run. Options are:
   - CombineDataSources
   - CombineUserData
+  - EmailPhoneNumbers
   - ExtractAADData
   - ExtractAWData
   - ImportData"
   exit 1
 fi
 
-echo "Going to run function - $1"
+DATA=${2:-test}
+
+echo "Going to run function - '$1' with data - '$DATA'"
 curl --location --request POST "http://localhost:7071/admin/functions/$1" \
   --header 'Content-Type: application/json' \
-  --data-raw '{ "input": "test"}'
+  --data-raw "{ \"input\": \"$DATA\" }"
