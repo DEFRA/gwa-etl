@@ -60,19 +60,25 @@ async function zipFile (context, output, blobContents) {
 module.exports = async context => {
   const { blobContents } = context.bindings
 
-  await new Promise((resolve, reject) => {
-    const output = fs.createWriteStream(zipPath)
-    output.on('close', async () => {
-      await uploadFile(context)
-      const sasUrl = await getSasUrl(context)
-      await sendEmail(context, sasUrl)
-      resolve()
-    })
-    output.on('error', err => {
-      context.log(err)
-      reject(err)
-    })
+  try {
+    return new Promise((resolve, reject) => {
+      const output = fs.createWriteStream(zipPath)
+      output.on('close', async () => {
+        await uploadFile(context)
+        const sasUrl = await getSasUrl(context)
+        await sendEmail(context, sasUrl)
+        resolve('resolved')
+      })
+      output.on('error', err => {
+        context.log(err)
+        reject(err)
+      })
 
-    zipFile(context, output, blobContents)
-  })
+      zipFile(context, output, blobContents)
+    })
+  } catch (e) {
+    context.log.error(e)
+    // Throwing an error ensures the built-in retry will kick in
+    throw new Error(e)
+  }
 }
