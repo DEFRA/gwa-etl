@@ -46,3 +46,5 @@ super-linter.log
 app-settings.*.json
 coverage
 .vscode
+*.zip
+.DS_Store
