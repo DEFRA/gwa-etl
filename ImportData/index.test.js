@@ -459,6 +459,6 @@ describe('ImportData bindings', () => {
     const binding = bindings[0]
     expect(binding.name).toEqual(outputBindingName)
     expect(binding.type).toEqual('blob')
-    expect(binding.path).toEqual(`%${testEnvVars.PHONE_NUMBERS_CONTAINER}%/phone-numbers.csv`)
+    expect(binding.path).toEqual(`%${testEnvVars.PHONE_NUMBERS_CONTAINER}%/%${testEnvVars.PHONE_NUMBERS_FILE}%`)
   })
 })
