@@ -4,6 +4,7 @@ const { BlobSASPermissions, BlockBlobClient } = require('@azure/storage-blob')
 const archiver = require('archiver')
 const archiverZipEncrypt = require('archiver-zip-encrypted')
 const { NotifyClient } = require('notifications-node-client')
+const { zipFilename } = require('../lib/config')
 
 archiver.registerFormat('zip-encrypted', archiverZipEncrypt)
 
@@ -16,20 +17,19 @@ const connectionString = process.env.AzureWebJobsStorage
 const phoneNumbersContainer = process.env.PHONE_NUMBERS_CONTAINER
 const filename = process.env.PHONE_NUMBERS_FILE
 const password = process.env.PHONE_NUMBERS_ZIP_PASSWORD
-const zipFilename = 'phone-numbers.zip'
-const bbclient = new BlockBlobClient(connectionString, phoneNumbersContainer, zipFilename)
+const blockBlobClient = new BlockBlobClient(connectionString, phoneNumbersContainer, zipFilename)
 
 const zipPath = path.join(__dirname, zipFilename)
 
 async function uploadFile (context) {
-  await bbclient.uploadFile(zipPath, { blobHTTPHeaders: { blobContentType: 'application/zip' } })
+  await blockBlobClient.uploadFile(zipPath, { blobHTTPHeaders: { blobContentType: 'application/zip' } })
   context.log(`Uploaded file: ${zipFilename} to container: ${phoneNumbersContainer}.`)
 }
 
 async function getSasUrl (context) {
   const expiresOn = new Date()
   expiresOn.setDate(expiresOn.getDate() + 29)
-  const sasUrl = await bbclient.generateSasUrl({
+  const sasUrl = await blockBlobClient.generateSasUrl({
     expiresOn,
     permissions: BlobSASPermissions.parse('r')
   })
@@ -58,9 +58,9 @@ async function zipFile (context, output, blobContents) {
 }
 
 module.exports = async context => {
-  const { blobContents } = context.bindings
-
   try {
+    const { blobContents } = context.bindings
+
     return new Promise((resolve, reject) => {
       const output = fs.createWriteStream(zipPath)
       output.on('close', async () => {
