@@ -1,33 +1,36 @@
+const fs = require('fs/promises')
+const path = require('path')
 const { zipFilename } = require('../lib/config')
 const testEnvVars = require('../test/test-env-vars')
+const { exists, removeFile } = require('../test/utils')
 
 const inputBindingName = 'blobContents'
 
 describe('EmailPhoneNumbers function', () => {
   jest.mock('@azure/storage-blob')
   jest.mock('notifications-node-client')
-  jest.mock('archiver')
-  jest.mock('archiver-zip-encrypted')
 
   const context = require('../test/default-context')
 
   const userData = [{ emailAddress: 'a@a.com' }]
   const triggerFileContents = Buffer.from(JSON.stringify(userData))
+  const zipPath = path.join(__dirname, zipFilename)
 
+  let BlobSASPermissions
   let BlockBlobClient
   let NotifyClient
-  let archiver
-  let archiverZipEncrypt
   let emailPhoneNumbers
+  const now = Date.now()
+  const date = new Date(now)
+  Date.now = jest.fn(() => now)
 
   beforeEach(() => {
     jest.clearAllMocks()
     jest.resetModules()
     emailPhoneNumbers = require('.')
+    BlobSASPermissions = require('@azure/storage-blob').BlobSASPermissions
     BlockBlobClient = require('@azure/storage-blob').BlockBlobClient
     NotifyClient = require('notifications-node-client').NotifyClient
-    archiver = require('archiver')
-    archiverZipEncrypt = require('archiver-zip-encrypted')
 
     context.bindings[inputBindingName] = triggerFileContents
   })
@@ -37,8 +40,35 @@ describe('EmailPhoneNumbers function', () => {
     expect(BlockBlobClient).toHaveBeenCalledWith(testEnvVars.AzureWebJobsStorage, testEnvVars.PHONE_NUMBERS_CONTAINER, zipFilename)
     expect(NotifyClient).toHaveBeenCalledTimes(1)
     expect(NotifyClient).toHaveBeenCalledWith(testEnvVars.NOTIFY_CLIENT_API_KEY)
-    expect(archiver.registerFormat).toHaveBeenCalledTimes(1)
-    expect(archiver.registerFormat).toHaveBeenCalledWith('zip-encrypted', archiverZipEncrypt)
+  })
+
+  test('zip file is uploaded and email is sent with correct content', async () => {
+    const permissionsMock = 'r'
+    BlobSASPermissions.parse.mockImplementation(() => permissionsMock)
+    date.setDate(date.getDate() + 29)
+    const sasUrl = 'mockSasUrl'
+    BlockBlobClient.prototype.generateSasUrl.mockResolvedValue(sasUrl)
+    await removeFile(zipPath)
+    expect(await exists(zipPath)).toEqual(false)
+
+    await emailPhoneNumbers(context)
+
+    await fs.readFile(zipPath)
+
+    expect(await exists(zipPath)).toEqual(true)
+
+    const uploadFileMock = BlockBlobClient.mock.instances[0].uploadFile
+    expect(uploadFileMock).toHaveBeenCalled()
+    expect(uploadFileMock).toHaveBeenCalledWith(zipPath, { blobHTTPHeaders: { blobContentType: 'application/zip' } })
+    const generateSasUrlMock = BlockBlobClient.mock.instances[0].generateSasUrl
+    expect(generateSasUrlMock).toHaveBeenCalled()
+    expect(generateSasUrlMock).toHaveBeenCalledWith({ expiresOn: date, permissions: permissionsMock })
+    expect(NotifyClient.prototype.sendEmail).toHaveBeenCalled()
+    expect(NotifyClient.prototype.sendEmail).toHaveBeenCalledWith(testEnvVars.NOTIFY_TEMPLATE_ID, testEnvVars.PHONE_NUMBERS_EMAIL_ADDRESS, { personalisation: { linkToFile: sasUrl } })
+    expect(context.log).toHaveBeenCalledTimes(3)
+    expect(context.log).toHaveBeenNthCalledWith(1, `Uploaded file: ${zipFilename} to container: ${testEnvVars.PHONE_NUMBERS_CONTAINER}.`)
+    expect(context.log).toHaveBeenNthCalledWith(2, `Generated sasUrl: ${sasUrl}.`)
+    expect(context.log).toHaveBeenNthCalledWith(3, `Sent email to: ${testEnvVars.PHONE_NUMBERS_EMAIL_ADDRESS}.`)
   })
 
   test('an error is thrown (and logged) when an error occurs', async () => {

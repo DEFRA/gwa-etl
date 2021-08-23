@@ -27,7 +27,7 @@ async function uploadFile (context) {
 }
 
 async function getSasUrl (context) {
-  const expiresOn = new Date()
+  const expiresOn = new Date(Date.now())
   expiresOn.setDate(expiresOn.getDate() + 29)
   const sasUrl = await blockBlobClient.generateSasUrl({
     expiresOn,
@@ -46,11 +46,8 @@ async function sendEmail (context, linkToFile) {
   context.log(`Sent email to: ${emailAddress}.`)
 }
 
-async function zipFile (context, output, blobContents) {
+async function zipFile (output, blobContents) {
   const archive = archiver.create('zip-encrypted', { zlib: { level: 8 }, encryptionMethod: 'aes256', password })
-
-  archive.on('error', err => context.log.error(err))
-  archive.on('warning', msg => context.log.warn(msg))
 
   archive.append(blobContents, { name: filename })
   archive.pipe(output)
@@ -61,7 +58,7 @@ module.exports = async context => {
   try {
     const { blobContents } = context.bindings
 
-    return new Promise((resolve, reject) => {
+    await new Promise((resolve, reject) => {
       const output = fs.createWriteStream(zipPath)
       output.on('close', async () => {
         await uploadFile(context)
@@ -74,7 +71,7 @@ module.exports = async context => {
         reject(err)
       })
 
-      zipFile(context, output, blobContents)
+      zipFile(output, blobContents)
     })
   } catch (e) {
     context.log.error(e)
