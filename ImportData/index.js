@@ -26,7 +26,7 @@ function savePhoneNumbersFile (context, users) {
   context.bindings.phoneNumbers = `${header}\n${getActivePhoneNumbers(users).join('\n')}`
 }
 
-module.exports = async function (context) {
+module.exports = async context => {
   try {
     const usersToImport = getUsersToImport(context)
 
