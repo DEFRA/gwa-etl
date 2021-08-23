@@ -1,4 +1,3 @@
-const fs = require('fs/promises')
 const path = require('path')
 const { zipFilename } = require('../lib/config')
 const testEnvVars = require('../test/test-env-vars')
@@ -52,8 +51,6 @@ describe('EmailPhoneNumbers function', () => {
     expect(await exists(zipPath)).toEqual(false)
 
     await emailPhoneNumbers(context)
-
-    await fs.readFile(zipPath)
 
     expect(await exists(zipPath)).toEqual(true)
 
