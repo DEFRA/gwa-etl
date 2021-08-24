@@ -71,7 +71,7 @@ module.exports = async context => {
         reject(err)
       })
 
-      zipFile(output, blobContents)
+      return zipFile(output, blobContents)
     })
   } catch (e) {
     context.log.error(e)
