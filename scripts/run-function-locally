@@ -5,7 +5,6 @@ if [ -z "$1" ]; then
   - CombineUserData
   - EmailPhoneNumbers
   - ExtractAADData
-  - ExtractAWData
   - ImportData"
   exit 1
 fi
