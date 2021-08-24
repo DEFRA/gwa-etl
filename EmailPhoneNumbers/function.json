@@ -4,13 +4,6 @@
       "name": "blobContents",
       "type": "blobTrigger",
       "direction": "in",
-      "path": "%DATA_IMPORT_CONTAINER%/valid-users.json",
-      "connection": "AzureWebJobsStorage"
-    },
-    {
-      "name": "phoneNumbers",
-      "type": "blob",
-      "direction": "out",
       "path": "%PHONE_NUMBERS_CONTAINER%/%PHONE_NUMBERS_FILE%",
       "connection": "AzureWebJobsStorage"
     }

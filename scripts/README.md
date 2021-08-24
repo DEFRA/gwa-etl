@@ -25,5 +25,12 @@ run during the CI build to ensure all files adhere to the linting rules.
 Run one of the functions locally by sending an HTTP POST request. The function
 app needs to be running.
 
-The script requires the name of the function it should be run to be passed as
+The script requires the name of the function it should run to be passed as
 the first argument e.g. `./run-function-local ExtractAADData`.
+
+Optionally, a second argument can be supplied, this will be set as the `input`
+value. It is useful when triggering blobTrigger functions to specify the name
+of the blob e.g. `./run-function-locally EmailPhoneNumbers
+phone-numbers/phone-numbers.csv` will run the `EmailPhoneNumbers` function for
+the `phone-numbers.csv` file in the `phone-numbers` container.
+If there is no second argument the value is defaulted to `test`.

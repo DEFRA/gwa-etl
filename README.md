@@ -30,6 +30,7 @@ When all datasets have been combined it is imported into Cosmos DB.
 The app is made up of a number of functions, each function is explained in more
 detail in its' own README:
 
+* [EmailPhoneNumbers](EmailPhoneNumbers/README.md)
 * [ExtractAWData](ExtractAWData/README.md)
 * [ExtractAADData](ExtractAADData/README.md)
 * [CombineUserData](CombineUserData/README.md)

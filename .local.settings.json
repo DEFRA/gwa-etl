@@ -18,6 +18,11 @@
     "DATA_SOURCES_CONTAINER": "data-sources",
     "IMPORT_ATTEMPT_SLEEP_DURATION": "1000",
     "IMPORT_BULK_BATCH_SLEEP_DURATION": "200",
-    "PHONE_NUMBERS_CONTAINER": "phone-numbers"
+    "NOTIFY_CLIENT_API_KEY": "",
+    "NOTIFY_TEMPLATE_ID": "",
+    "PHONE_NUMBERS_CONTAINER": "phone-numbers",
+    "PHONE_NUMBERS_EMAIL_ADDRESS": "",
+    "PHONE_NUMBERS_FILE": "phone-numbers.csv",
+    "PHONE_NUMBERS_ZIP_PASSWORD": "zip-password-here"
   }
 }
