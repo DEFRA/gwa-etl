@@ -7,12 +7,16 @@ const outputBindingName = 'phoneNumbers'
 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 describe('ImportData function', () => {
+  jest.mock('@azure/cosmos')
+  jest.mock('notifications-node-client')
+
   const context = require('../test/default-context')
   const importDate = Date.now()
   Date.now = jest.fn(() => importDate)
 
   let importData
   let CosmosClient
+  let NotifyClient
   let bulkMock
   let containerMock
   let fetchAllMock
@@ -26,6 +30,16 @@ describe('ImportData function', () => {
     logs.forEach((log, i) => expect(context.log).toHaveBeenNthCalledWith(i + 1, log))
   }
 
+  function expectEmailCall (content) {
+    expect(NotifyClient.prototype.sendEmail).toHaveBeenCalled()
+    expect(NotifyClient.prototype.sendEmail).toHaveBeenCalledWith(testEnvVars.NOTIFY_TEMPLATE_ID_DATA_IMPORT_REPORT, testEnvVars.NOTIFY_SEND_TO_EMAIL_ADDRESS, { personalisation: { content: expect.stringContaining(content) } })
+  }
+
+  function expectEmailToBeSent (content) {
+    expectEmailCall(content)
+    expect(context.log).toHaveBeenCalledWith(`Sent email to: ${testEnvVars.NOTIFY_SEND_TO_EMAIL_ADDRESS}.`)
+  }
+
   function getExpectedPhoneNumberOutput (phoneNumbers) {
     return `phone number\n${phoneNumbers.map(pn => `${pn.slice(0, 5)} ${pn.slice(5)}`).join('\n')}`
   }
@@ -34,8 +48,8 @@ describe('ImportData function', () => {
     jest.clearAllMocks()
     jest.resetModules()
 
+    NotifyClient = require('notifications-node-client').NotifyClient
     CosmosClient = require('@azure/cosmos').CosmosClient
-    jest.mock('@azure/cosmos')
 
     bulkMock = jest.fn()
     fetchAllMock = jest.fn()
@@ -55,7 +69,7 @@ describe('ImportData function', () => {
     importData = require('.')
   })
 
-  test('Cosmos client is correctly created on module import', async () => {
+  test('Cosmos and Notify clients are correctly created on module import', async () => {
     expect(CosmosClient).toHaveBeenCalledTimes(1)
     expect(CosmosClient).toHaveBeenCalledWith(testEnvVars.COSMOS_DB_CONNECTION_STRING)
     const databaseMock = CosmosClient.mock.instances[0].database
@@ -63,9 +77,11 @@ describe('ImportData function', () => {
     expect(databaseMock).toHaveBeenCalledWith(testEnvVars.COSMOS_DB_NAME)
     expect(containerMock).toHaveBeenCalledTimes(1)
     expect(containerMock).toHaveBeenCalledWith(testEnvVars.COSMOS_DB_USERS_CONTAINER)
+    expect(NotifyClient).toHaveBeenCalledTimes(1)
+    expect(NotifyClient).toHaveBeenCalledWith(testEnvVars.NOTIFY_CLIENT_API_KEY)
   })
 
-  test('no users to import results in no db querying', async () => {
+  test('no users to import results in no db querying and email being sent', async () => {
     const usersToImport = []
     bindUsersForImport(usersToImport)
 
@@ -73,6 +89,12 @@ describe('ImportData function', () => {
 
     expect(context.log.warn).toHaveBeenCalledTimes(1)
     expect(context.log.warn).toHaveBeenCalledWith('No users to import, returning early.')
+    expect(NotifyClient.prototype.sendEmail).toHaveBeenCalledTimes(1)
+    expect(NotifyClient.prototype.sendEmail).toHaveBeenCalledWith(testEnvVars.NOTIFY_TEMPLATE_ID_DATA_IMPORT_REPORT, testEnvVars.NOTIFY_SEND_TO_EMAIL_ADDRESS, {
+      personalisation: { content: 'There were no users to import.' }
+    })
+    expect(context.log).toHaveBeenCalledTimes(1)
+    expect(context.log).toHaveBeenCalledWith(`Sent email to: ${testEnvVars.NOTIFY_SEND_TO_EMAIL_ADDRESS}.`)
   })
 
   test('an item to import with an existing record (with a corporate phone number along with a new corporate phone number) is updated (movers or no change)', async () => {
@@ -112,6 +134,8 @@ describe('ImportData function', () => {
     const expectedPhoneNumbers = getExpectedPhoneNumberOutput([existingPhoneNumbers[1].number, existingPhoneNumbers[0].number, usersToImport[0].phoneNumbers[1]])
     expect(phoneNumbersOutput).toHaveLength(expectedPhoneNumbers.length)
     expect(phoneNumbersOutput).toEqual(expectedPhoneNumbers)
+    const expectedReport = 'Import was successful.\n0 users were created.\n1 user was updated.\n0 users were set inactive.'
+    expectEmailToBeSent(expectedReport)
     expectLoggingToBeCorrect([
       `Users to import: ${usersToImport.length}.`,
       `Users already existing: ${existingUsers.length}.`,
@@ -120,9 +144,7 @@ describe('ImportData function', () => {
       'Users updated successfully: 1\nUsers still to be updated: 0\nCost (RUs): 10.',
       'After 1 attempt(s), 0 user(s) are still to be updated.',
       'Total cost (RUs): 10.',
-      '0 user(s) created.',
-      '1 user(s) updated.',
-      '0 user(s) inactive.'
+      expectedReport
     ])
   })
 
@@ -159,6 +181,8 @@ describe('ImportData function', () => {
     const expectedPhoneNumbers = getExpectedPhoneNumberOutput([existingPhoneNumbers[1].number, usersToImport[0].phoneNumbers[0]])
     expect(phoneNumbersOutput).toHaveLength(expectedPhoneNumbers.length)
     expect(phoneNumbersOutput).toEqual(expectedPhoneNumbers)
+    const expectedReport = 'Import was successful.\n0 users were created.\n1 user was updated.\n0 users were set inactive.'
+    expectEmailToBeSent(expectedReport)
     expectLoggingToBeCorrect([
       `Users to import: ${usersToImport.length}.`,
       `Users already existing: ${existingUsers.length}.`,
@@ -167,9 +191,7 @@ describe('ImportData function', () => {
       'Users updated successfully: 1\nUsers still to be updated: 0\nCost (RUs): 10.',
       'After 1 attempt(s), 0 user(s) are still to be updated.',
       'Total cost (RUs): 10.',
-      '0 user(s) created.',
-      '1 user(s) updated.',
-      '0 user(s) inactive.'
+      expectedReport
     ])
   })
 
@@ -237,6 +259,8 @@ describe('ImportData function', () => {
     const expectedPhoneNumbers = getExpectedPhoneNumberOutput([])
     expect(phoneNumbersOutput).toHaveLength(expectedPhoneNumbers.length)
     expect(phoneNumbersOutput).toEqual(expectedPhoneNumbers)
+    const expectedReport = 'Import was successful.\n1 user was created.\n0 users were updated.\n0 users were set inactive.'
+    expectEmailToBeSent(expectedReport)
     expectLoggingToBeCorrect([
       `Users to import: ${usersToImport.length}.`,
       `Users already existing: ${existingUsers.length}.`,
@@ -245,9 +269,7 @@ describe('ImportData function', () => {
       'Users updated successfully: 1\nUsers still to be updated: 0\nCost (RUs): 10.',
       'After 1 attempt(s), 0 user(s) are still to be updated.',
       'Total cost (RUs): 10.',
-      '1 user(s) created.',
-      '0 user(s) updated.',
-      '0 user(s) inactive.'
+      expectedReport
     ])
   })
 
@@ -284,6 +306,8 @@ describe('ImportData function', () => {
     const expectedPhoneNumbers = getExpectedPhoneNumberOutput([])
     expect(phoneNumbersOutput).toHaveLength(expectedPhoneNumbers.length)
     expect(phoneNumbersOutput).toEqual(expectedPhoneNumbers)
+    const expectedReport = 'Import was successful.\n1 user was created.\n0 users were updated.\n1 user was set inactive.'
+    expectEmailToBeSent(expectedReport)
     expectLoggingToBeCorrect([
       `Users to import: ${usersToImport.length}.`,
       `Users already existing: ${existingUsers.length}.`,
@@ -292,9 +316,7 @@ describe('ImportData function', () => {
       'Users updated successfully: 2\nUsers still to be updated: 0\nCost (RUs): 20.',
       'After 1 attempt(s), 0 user(s) are still to be updated.',
       'Total cost (RUs): 20.',
-      '1 user(s) created.',
-      '0 user(s) updated.',
-      '1 user(s) inactive.'
+      expectedReport
     ])
   })
 
@@ -406,7 +428,7 @@ describe('ImportData function', () => {
     }]))
   })
 
-  test('an error is logged when an update response contains an handled statusCode', async () => {
+  test('an error is logged when an update response contains an unhandled statusCode', async () => {
     const usersToImport = [{ emailAddress: 'a@a.com' }]
     const unhandldedResponse = { requestCharge: 0, resourceBody: { id: usersToImport[0].emailAddress }, statusCode: 409 }
     fetchAllMock.mockResolvedValueOnce({ resources: [] })
@@ -426,12 +448,24 @@ describe('ImportData function', () => {
     expect(context.log.error).toHaveBeenCalledWith(unhandldedResponse)
   })
 
+  test('an error during email sending is thrown (and logged)', async () => {
+    bindUsersForImport([])
+    NotifyClient.prototype.sendEmail.mockRejectedValue(new Error())
+
+    await expect(importData(context)).rejects.toThrow(Error)
+
+    expect(context.log.error).toHaveBeenCalledTimes(1)
+    expectEmailCall('There were no users to import')
+  })
+
   test('an error is thrown (and logged) when an error occurs', async () => {
     // Doesn't matter what causes the error, just that an error is thrown
     context.bindings = null
 
     await expect(importData(context)).rejects.toThrow(Error)
+
     expect(context.log.error).toHaveBeenCalledTimes(1)
+    expectEmailToBeSent('Import failed. Message: Cannot destructure property \'blobContents\'')
   })
 })
 

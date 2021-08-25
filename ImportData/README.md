@@ -19,6 +19,10 @@ as an emergency contact list that could be uploaded directly to GOV.UK Notify.
 This could be needed if the web app became unavailable for any reason.
 The file is just a list of all active user's phone numbers and nothing more.
 
+The function will also send an email via
+[GOV.UK Notify](https://docs.notifications.service.gov.uk/node.html#send-an-email)
+to the Administrators with a summary of the import.
+
 The data being imported is merged with the existing data, with precedence given
 to the new data. Therefore, should additional data already exist for any
 existing users e.g. personal phone numbers, this will be maintained during the

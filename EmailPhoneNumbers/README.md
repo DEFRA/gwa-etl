@@ -9,13 +9,13 @@ contains a list of all active phone numbers and is generated during the
 [ImportData](../ImportData) function execution.
 
 The function creates an encrypted, password protected archive and uploads it to
-the same storage container, with the same name (effectively overwriting the
-existing file) where the original file exists.
+the same storage container. The name of the archive is the same each time
+(overwriting the existing file, if there is one).
 A [SAS URI](https://docs.microsoft.com/en-us/rest/api/storageservices/delegate-access-with-shared-access-signature)
 with a 29 day lifetime is generated and
 [sent by email](https://docs.notifications.service.gov.uk/node.html#send-an-email)
 using GOV.UK Notify to a email address accessible by Administrators of
-`gwa-web`.
+`gwa-web`. The password to open the archive is known by the Administrators.
 
 ## Notes
 

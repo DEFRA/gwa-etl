@@ -8,9 +8,9 @@ const { zipFilename } = require('../lib/config')
 
 archiver.registerFormat('zip-encrypted', archiverZipEncrypt)
 
-const emailAddress = process.env.PHONE_NUMBERS_EMAIL_ADDRESS
+const emailAddress = process.env.NOTIFY_SEND_TO_EMAIL_ADDRESS
 const notifyClientApiKey = process.env.NOTIFY_CLIENT_API_KEY
-const notifyTemplateId = process.env.NOTIFY_TEMPLATE_ID
+const emergencyContanctListTemplateId = process.env.NOTIFY_TEMPLATE_ID_EMERGENCY_CONTACT_LIST
 const notifyClient = new NotifyClient(notifyClientApiKey)
 
 const connectionString = process.env.AzureWebJobsStorage
@@ -40,7 +40,7 @@ async function getSasUrl (context) {
 }
 
 async function sendEmail (context, linkToFile) {
-  await notifyClient.sendEmail(notifyTemplateId, emailAddress, {
+  await notifyClient.sendEmail(emergencyContanctListTemplateId, emailAddress, {
     personalisation: {
       linkToFile
     }
@@ -48,12 +48,16 @@ async function sendEmail (context, linkToFile) {
   context.log(`Sent email to: ${emailAddress}.`)
 }
 
-async function zipFile (output, blobContents) {
-  const archive = archiver.create('zip-encrypted', { zlib: { level: 8 }, encryptionMethod: 'aes256', password })
+async function zipFile (output, blobContents, reject) {
+  try {
+    const archive = archiver.create('zip-encrypted', { zlib: { level: 8 }, encryptionMethod: 'aes256', password })
 
-  archive.append(blobContents, { name: filename })
-  archive.pipe(output)
-  await archive.finalize()
+    archive.append(blobContents, { name: filename })
+    archive.pipe(output)
+    await archive.finalize()
+  } catch (e) {
+    reject(e)
+  }
 }
 
 module.exports = async context => {
@@ -63,17 +67,20 @@ module.exports = async context => {
     await new Promise((resolve, reject) => {
       const output = fs.createWriteStream(zipPath)
       output.on('close', async () => {
-        await uploadFile(context)
-        const sasUrl = await getSasUrl(context)
-        await sendEmail(context, sasUrl)
-        resolve('resolved')
+        try {
+          await uploadFile(context)
+          const sasUrl = await getSasUrl(context)
+          await sendEmail(context, sasUrl)
+          resolve()
+        } catch (e) {
+          reject(e)
+        }
       })
       output.on('error', err => {
-        context.log(err)
         reject(err)
       })
 
-      return zipFile(output, blobContents)
+      return zipFile(output, blobContents, reject)
     })
   } catch (e) {
     context.log.error(e)
