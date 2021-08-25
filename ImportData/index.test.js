@@ -465,7 +465,7 @@ describe('ImportData function', () => {
     await expect(importData(context)).rejects.toThrow(Error)
 
     expect(context.log.error).toHaveBeenCalledTimes(1)
-    expectEmailToBeSent('Import failed. Message: Cannot destructure property \'blobContents\'')
+    expectEmailToBeSent('Import failed.\nError message: Cannot destructure property \'blobContents\'')
   })
 })
 
