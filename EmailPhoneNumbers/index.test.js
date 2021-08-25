@@ -13,7 +13,7 @@ describe('EmailPhoneNumbers function', () => {
 
   const userData = [{ emailAddress: 'a@a.com' }]
   const triggerFileContents = Buffer.from(JSON.stringify(userData))
-  const zipPath = path.join(__dirname, zipFilename)
+  const zipPath = path.join(process.env.HOME, zipFilename)
 
   let BlobSASPermissions
   let BlockBlobClient

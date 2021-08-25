@@ -19,7 +19,9 @@ const filename = process.env.PHONE_NUMBERS_FILE
 const password = process.env.PHONE_NUMBERS_ZIP_PASSWORD
 const blockBlobClient = new BlockBlobClient(connectionString, phoneNumbersContainer, zipFilename)
 
-const zipPath = path.join(__dirname, zipFilename)
+// HOME contains a writable path in Azure Functions
+const homePath = process.env.HOME
+const zipPath = path.join(homePath, zipFilename)
 
 async function uploadFile (context) {
   await blockBlobClient.uploadFile(zipPath, { blobHTTPHeaders: { blobContentType: 'application/zip' } })
