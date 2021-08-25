@@ -2,6 +2,7 @@ const { CosmosClient } = require('@azure/cosmos')
 const { NotifyClient } = require('notifications-node-client')
 
 const categoriseUsers = require('../lib/categorise-users')
+const generateReport = require('../lib/generate-report')
 const getActivePhoneNumbers = require('../lib/get-active-phone-numbers')
 const upsertUsers = require('../lib/upsert-users')
 
@@ -30,9 +31,7 @@ async function getExistingUsers (container) {
 
 async function sendEmail (context, content) {
   await notifyClient.sendEmail(importReportTemplateId, emailAddress, {
-    personalisation: {
-      content
-    }
+    personalisation: { content }
   })
   context.log(`Sent email to: ${emailAddress}.`)
 }
@@ -63,7 +62,7 @@ module.exports = async context => {
 
       savePhoneNumbersFile(context, users)
       await upsertUsers(context, usersContainer, users)
-      emailContent = 'Import was successful'
+      emailContent = generateReport(users)
     } catch (e) {
       emailContent = 'Import failed. Message: ' + e.message
       throw new Error(e)
