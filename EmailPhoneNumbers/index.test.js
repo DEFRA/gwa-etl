@@ -23,7 +23,7 @@ describe('EmailPhoneNumbers function', () => {
   const date = new Date(now)
   Date.now = jest.fn(() => now)
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks()
     jest.resetModules()
     emailPhoneNumbers = require('.')
@@ -32,49 +32,97 @@ describe('EmailPhoneNumbers function', () => {
     NotifyClient = require('notifications-node-client').NotifyClient
 
     context.bindings[inputBindingName] = triggerFileContents
-  })
 
-  test('clients are created when module is imported, with correct env vars', async () => {
-    expect(BlockBlobClient).toHaveBeenCalledTimes(1)
-    expect(BlockBlobClient).toHaveBeenCalledWith(testEnvVars.AzureWebJobsStorage, testEnvVars.PHONE_NUMBERS_CONTAINER, zipFilename)
-    expect(NotifyClient).toHaveBeenCalledTimes(1)
-    expect(NotifyClient).toHaveBeenCalledWith(testEnvVars.NOTIFY_CLIENT_API_KEY)
-  })
-
-  test('zip file is uploaded and email is sent with correct content', async () => {
-    const permissionsMock = 'r'
-    BlobSASPermissions.parse.mockImplementation(() => permissionsMock)
-    date.setDate(date.getDate() + 29)
-    const sasUrl = 'mockSasUrl'
-    BlockBlobClient.prototype.generateSasUrl.mockResolvedValue(sasUrl)
     await removeFile(zipPath)
     expect(await exists(zipPath)).toEqual(false)
-
-    await emailPhoneNumbers(context)
-
-    expect(await exists(zipPath)).toEqual(true)
-
-    const uploadFileMock = BlockBlobClient.mock.instances[0].uploadFile
-    expect(uploadFileMock).toHaveBeenCalled()
-    expect(uploadFileMock).toHaveBeenCalledWith(zipPath, { blobHTTPHeaders: { blobContentType: 'application/zip' } })
-    const generateSasUrlMock = BlockBlobClient.mock.instances[0].generateSasUrl
-    expect(generateSasUrlMock).toHaveBeenCalled()
-    expect(generateSasUrlMock).toHaveBeenCalledWith({ expiresOn: date, permissions: permissionsMock })
-    expect(NotifyClient.prototype.sendEmail).toHaveBeenCalled()
-    expect(NotifyClient.prototype.sendEmail).toHaveBeenCalledWith(testEnvVars.NOTIFY_TEMPLATE_ID, testEnvVars.PHONE_NUMBERS_EMAIL_ADDRESS, { personalisation: { linkToFile: sasUrl } })
-    expect(context.log).toHaveBeenCalledTimes(3)
-    expect(context.log).toHaveBeenNthCalledWith(1, `Uploaded file: ${zipFilename} to container: ${testEnvVars.PHONE_NUMBERS_CONTAINER}.`)
-    expect(context.log).toHaveBeenNthCalledWith(2, `Generated sasUrl: ${sasUrl}.`)
-    expect(context.log).toHaveBeenNthCalledWith(3, `Sent email to: ${testEnvVars.PHONE_NUMBERS_EMAIL_ADDRESS}.`)
   })
 
-  test('an error is thrown (and logged) when an error occurs', async () => {
-    // Doesn't matter what causes the error, just that an error is thrown
-    context.bindings = null
+  describe('happy path', () => {
+    test('clients are created when module is imported, with correct env vars', async () => {
+      expect(BlockBlobClient).toHaveBeenCalledTimes(1)
+      expect(BlockBlobClient).toHaveBeenCalledWith(testEnvVars.AzureWebJobsStorage, testEnvVars.PHONE_NUMBERS_CONTAINER, zipFilename)
+      expect(NotifyClient).toHaveBeenCalledTimes(1)
+      expect(NotifyClient).toHaveBeenCalledWith(testEnvVars.NOTIFY_CLIENT_API_KEY)
+    })
 
-    await expect(emailPhoneNumbers(context)).rejects.toThrow(Error)
+    test('zip file is uploaded and email is sent with correct content', async () => {
+      const permissionsMock = 'r'
+      BlobSASPermissions.parse.mockImplementation(() => permissionsMock)
+      date.setDate(date.getDate() + 29)
+      const sasUrl = 'mockSasUrl'
+      BlockBlobClient.prototype.generateSasUrl.mockResolvedValue(sasUrl)
 
-    expect(context.log.error).toHaveBeenCalledTimes(1)
+      await emailPhoneNumbers(context)
+
+      expect(await exists(zipPath)).toEqual(true)
+
+      const uploadFileMock = BlockBlobClient.mock.instances[0].uploadFile
+      expect(uploadFileMock).toHaveBeenCalled()
+      expect(uploadFileMock).toHaveBeenCalledWith(zipPath, { blobHTTPHeaders: { blobContentType: 'application/zip' } })
+      const generateSasUrlMock = BlockBlobClient.mock.instances[0].generateSasUrl
+      expect(generateSasUrlMock).toHaveBeenCalled()
+      expect(generateSasUrlMock).toHaveBeenCalledWith({ expiresOn: date, permissions: permissionsMock })
+      expect(NotifyClient.prototype.sendEmail).toHaveBeenCalled()
+      expect(NotifyClient.prototype.sendEmail).toHaveBeenCalledWith(testEnvVars.NOTIFY_TEMPLATE_ID, testEnvVars.PHONE_NUMBERS_EMAIL_ADDRESS, { personalisation: { linkToFile: sasUrl } })
+      expect(context.log).toHaveBeenCalledTimes(3)
+      expect(context.log).toHaveBeenNthCalledWith(1, `Uploaded file: ${zipFilename} to container: ${testEnvVars.PHONE_NUMBERS_CONTAINER}.`)
+      expect(context.log).toHaveBeenNthCalledWith(2, `Generated sasUrl: ${sasUrl}.`)
+      expect(context.log).toHaveBeenNthCalledWith(3, `Sent email to: ${testEnvVars.PHONE_NUMBERS_EMAIL_ADDRESS}.`)
+    })
+  })
+
+  describe('errors', () => {
+    test('an error is thrown (and logged) when an error occurs during zip creation', async () => {
+      const password = process.env.PHONE_NUMBERS_ZIP_PASSWORD
+      process.env.PHONE_NUMBERS_ZIP_PASSWORD = ''
+      jest.resetModules()
+      emailPhoneNumbers = require('.')
+
+      await expect(emailPhoneNumbers(context)).rejects.toThrow(Error)
+
+      expect(context.log.error).toHaveBeenCalledTimes(1)
+      expect(context.log.error).toHaveBeenCalledWith(new Error('options.password is required'))
+      process.env.PHONE_NUMBERS_ZIP_PASSWORD = password
+    })
+
+    test('an error is thrown (and logged) when an error occurs during file upload', async () => {
+      const error = new Error('file upload')
+      BlockBlobClient.prototype.uploadFile.mockRejectedValue(error)
+
+      await expect(emailPhoneNumbers(context)).rejects.toThrow(Error)
+
+      expect(context.log.error).toHaveBeenCalledTimes(1)
+      expect(context.log.error).toHaveBeenCalledWith(error)
+    })
+
+    test('an error is thrown (and logged) when an error occurs during sasUrl generation', async () => {
+      const error = new Error('sasUrl generation')
+      BlockBlobClient.prototype.generateSasUrl.mockRejectedValue(error)
+
+      await expect(emailPhoneNumbers(context)).rejects.toThrow(Error)
+
+      expect(context.log.error).toHaveBeenCalledTimes(1)
+      expect(context.log.error).toHaveBeenCalledWith(error)
+    })
+
+    test('an error is thrown (and logged) when an error occurs during email sending', async () => {
+      const error = new Error('email sending')
+      NotifyClient.prototype.sendEmail.mockRejectedValue(error)
+
+      await expect(emailPhoneNumbers(context)).rejects.toThrow(Error)
+
+      expect(context.log.error).toHaveBeenCalledTimes(1)
+      expect(context.log.error).toHaveBeenCalledWith(error)
+    })
+
+    test('an error is thrown (and logged) when an error occurs', async () => {
+      // Doesn't matter what causes the error, just that an error is thrown
+      context.bindings = null
+
+      await expect(emailPhoneNumbers(context)).rejects.toThrow(Error)
+
+      expect(context.log.error).toHaveBeenCalledTimes(1)
+    })
   })
 })
 

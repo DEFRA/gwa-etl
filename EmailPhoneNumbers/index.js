@@ -48,12 +48,16 @@ async function sendEmail (context, linkToFile) {
   context.log(`Sent email to: ${emailAddress}.`)
 }
 
-async function zipFile (output, blobContents) {
-  const archive = archiver.create('zip-encrypted', { zlib: { level: 8 }, encryptionMethod: 'aes256', password })
+async function zipFile (output, blobContents, reject) {
+  try {
+    const archive = archiver.create('zip-encrypted', { zlib: { level: 8 }, encryptionMethod: 'aes256', password })
 
-  archive.append(blobContents, { name: filename })
-  archive.pipe(output)
-  await archive.finalize()
+    archive.append(blobContents, { name: filename })
+    archive.pipe(output)
+    await archive.finalize()
+  } catch (e) {
+    reject(e)
+  }
 }
 
 module.exports = async context => {
@@ -63,17 +67,20 @@ module.exports = async context => {
     await new Promise((resolve, reject) => {
       const output = fs.createWriteStream(zipPath)
       output.on('close', async () => {
-        await uploadFile(context)
-        const sasUrl = await getSasUrl(context)
-        await sendEmail(context, sasUrl)
-        resolve('resolved')
+        try {
+          await uploadFile(context)
+          const sasUrl = await getSasUrl(context)
+          await sendEmail(context, sasUrl)
+          resolve()
+        } catch (e) {
+          reject(e)
+        }
       })
       output.on('error', err => {
-        context.log(err)
         reject(err)
       })
 
-      return zipFile(output, blobContents)
+      return zipFile(output, blobContents, reject)
     })
   } catch (e) {
     context.log.error(e)
