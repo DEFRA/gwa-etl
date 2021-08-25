@@ -134,7 +134,8 @@ describe('ImportData function', () => {
     const expectedPhoneNumbers = getExpectedPhoneNumberOutput([existingPhoneNumbers[1].number, existingPhoneNumbers[0].number, usersToImport[0].phoneNumbers[1]])
     expect(phoneNumbersOutput).toHaveLength(expectedPhoneNumbers.length)
     expect(phoneNumbersOutput).toEqual(expectedPhoneNumbers)
-    expectEmailToBeSent('Import was successful.\n0 users were created.\n1 users were updated.\n0 users were set inactive.')
+    const expectedReport = 'Import was successful.\n0 users were created.\n1 user was updated.\n0 users were set inactive.'
+    expectEmailToBeSent(expectedReport)
     expectLoggingToBeCorrect([
       `Users to import: ${usersToImport.length}.`,
       `Users already existing: ${existingUsers.length}.`,
@@ -143,9 +144,7 @@ describe('ImportData function', () => {
       'Users updated successfully: 1\nUsers still to be updated: 0\nCost (RUs): 10.',
       'After 1 attempt(s), 0 user(s) are still to be updated.',
       'Total cost (RUs): 10.',
-      '0 user(s) created.',
-      '1 user(s) updated.',
-      '0 user(s) inactive.'
+      expectedReport
     ])
   })
 
@@ -182,7 +181,8 @@ describe('ImportData function', () => {
     const expectedPhoneNumbers = getExpectedPhoneNumberOutput([existingPhoneNumbers[1].number, usersToImport[0].phoneNumbers[0]])
     expect(phoneNumbersOutput).toHaveLength(expectedPhoneNumbers.length)
     expect(phoneNumbersOutput).toEqual(expectedPhoneNumbers)
-    expectEmailToBeSent('Import was successful.\n0 users were created.\n1 users were updated.\n0 users were set inactive.')
+    const expectedReport = 'Import was successful.\n0 users were created.\n1 user was updated.\n0 users were set inactive.'
+    expectEmailToBeSent(expectedReport)
     expectLoggingToBeCorrect([
       `Users to import: ${usersToImport.length}.`,
       `Users already existing: ${existingUsers.length}.`,
@@ -191,9 +191,7 @@ describe('ImportData function', () => {
       'Users updated successfully: 1\nUsers still to be updated: 0\nCost (RUs): 10.',
       'After 1 attempt(s), 0 user(s) are still to be updated.',
       'Total cost (RUs): 10.',
-      '0 user(s) created.',
-      '1 user(s) updated.',
-      '0 user(s) inactive.'
+      expectedReport
     ])
   })
 
@@ -261,7 +259,8 @@ describe('ImportData function', () => {
     const expectedPhoneNumbers = getExpectedPhoneNumberOutput([])
     expect(phoneNumbersOutput).toHaveLength(expectedPhoneNumbers.length)
     expect(phoneNumbersOutput).toEqual(expectedPhoneNumbers)
-    expectEmailToBeSent('Import was successful.\n1 users were created.\n0 users were updated.\n0 users were set inactive.')
+    const expectedReport = 'Import was successful.\n1 user was created.\n0 users were updated.\n0 users were set inactive.'
+    expectEmailToBeSent(expectedReport)
     expectLoggingToBeCorrect([
       `Users to import: ${usersToImport.length}.`,
       `Users already existing: ${existingUsers.length}.`,
@@ -270,9 +269,7 @@ describe('ImportData function', () => {
       'Users updated successfully: 1\nUsers still to be updated: 0\nCost (RUs): 10.',
       'After 1 attempt(s), 0 user(s) are still to be updated.',
       'Total cost (RUs): 10.',
-      '1 user(s) created.',
-      '0 user(s) updated.',
-      '0 user(s) inactive.'
+      expectedReport
     ])
   })
 
@@ -309,7 +306,8 @@ describe('ImportData function', () => {
     const expectedPhoneNumbers = getExpectedPhoneNumberOutput([])
     expect(phoneNumbersOutput).toHaveLength(expectedPhoneNumbers.length)
     expect(phoneNumbersOutput).toEqual(expectedPhoneNumbers)
-    expectEmailToBeSent('Import was successful.\n1 users were created.\n0 users were updated.\n1 users were set inactive.')
+    const expectedReport = 'Import was successful.\n1 user was created.\n0 users were updated.\n1 user was set inactive.'
+    expectEmailToBeSent(expectedReport)
     expectLoggingToBeCorrect([
       `Users to import: ${usersToImport.length}.`,
       `Users already existing: ${existingUsers.length}.`,
@@ -318,9 +316,7 @@ describe('ImportData function', () => {
       'Users updated successfully: 2\nUsers still to be updated: 0\nCost (RUs): 20.',
       'After 1 attempt(s), 0 user(s) are still to be updated.',
       'Total cost (RUs): 20.',
-      '1 user(s) created.',
-      '0 user(s) updated.',
-      '1 user(s) inactive.'
+      expectedReport
     ])
   })
 
