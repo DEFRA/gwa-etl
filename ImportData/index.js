@@ -1,8 +1,15 @@
 const { CosmosClient } = require('@azure/cosmos')
+const { NotifyClient } = require('notifications-node-client')
 
 const categoriseUsers = require('../lib/categorise-users')
 const getActivePhoneNumbers = require('../lib/get-active-phone-numbers')
 const upsertUsers = require('../lib/upsert-users')
+
+const emailAddress = process.env.NOTIFY_SEND_TO_EMAIL_ADDRESS
+const importReportTemplateId = process.env.NOTIFY_TEMPLATE_ID_DATA_IMPORT_REPORT
+const notifyClientApiKey = process.env.NOTIFY_CLIENT_API_KEY
+
+const notifyClient = new NotifyClient(notifyClientApiKey)
 
 const connectionString = process.env.COSMOS_DB_CONNECTION_STRING
 const dbName = process.env.COSMOS_DB_NAME
@@ -21,17 +28,29 @@ async function getExistingUsers (container) {
   return (await container.items.query('SELECT * FROM c').fetchAll()).resources
 }
 
+async function sendEmail (context, content) {
+  await notifyClient.sendEmail(importReportTemplateId, emailAddress, {
+    personalisation: {
+      content
+    }
+  })
+  context.log(`Sent email to: ${emailAddress}.`)
+}
+
 function savePhoneNumbersFile (context, users) {
   const header = 'phone number'
   context.bindings.phoneNumbers = `${header}\n${getActivePhoneNumbers(users).join('\n')}`
 }
 
 module.exports = async context => {
+  let emailContent
+
   try {
     const usersToImport = getUsersToImport(context)
 
     if (!usersToImport.length) {
       context.log.warn('No users to import, returning early.')
+      emailContent = 'There were no users to import.'
       return
     }
     context.log(`Users to import: ${usersToImport.length}.`)
@@ -43,9 +62,13 @@ module.exports = async context => {
 
     savePhoneNumbersFile(context, users)
     await upsertUsers(context, usersContainer, users)
+    emailContent = 'Import was successful'
   } catch (e) {
     context.log.error(e)
+    emailContent = 'Import failed. Message: ' + e.message
     // Throwing an error ensures the built-in retry will kick in
     throw new Error(e)
+  } finally {
+    await sendEmail(context, emailContent)
   }
 }

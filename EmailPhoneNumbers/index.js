@@ -8,9 +8,9 @@ const { zipFilename } = require('../lib/config')
 
 archiver.registerFormat('zip-encrypted', archiverZipEncrypt)
 
-const emailAddress = process.env.PHONE_NUMBERS_EMAIL_ADDRESS
+const emailAddress = process.env.NOTIFY_SEND_TO_EMAIL_ADDRESS
 const notifyClientApiKey = process.env.NOTIFY_CLIENT_API_KEY
-const notifyTemplateId = process.env.NOTIFY_TEMPLATE_ID
+const emergencyContanctListTemplateId = process.env.NOTIFY_TEMPLATE_ID_EMERGENCY_CONTACT_LIST
 const notifyClient = new NotifyClient(notifyClientApiKey)
 
 const connectionString = process.env.AzureWebJobsStorage
@@ -40,7 +40,7 @@ async function getSasUrl (context) {
 }
 
 async function sendEmail (context, linkToFile) {
-  await notifyClient.sendEmail(notifyTemplateId, emailAddress, {
+  await notifyClient.sendEmail(emergencyContanctListTemplateId, emailAddress, {
     personalisation: {
       linkToFile
     }

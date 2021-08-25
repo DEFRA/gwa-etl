@@ -63,11 +63,11 @@ describe('EmailPhoneNumbers function', () => {
       expect(generateSasUrlMock).toHaveBeenCalled()
       expect(generateSasUrlMock).toHaveBeenCalledWith({ expiresOn: date, permissions: permissionsMock })
       expect(NotifyClient.prototype.sendEmail).toHaveBeenCalled()
-      expect(NotifyClient.prototype.sendEmail).toHaveBeenCalledWith(testEnvVars.NOTIFY_TEMPLATE_ID, testEnvVars.PHONE_NUMBERS_EMAIL_ADDRESS, { personalisation: { linkToFile: sasUrl } })
+      expect(NotifyClient.prototype.sendEmail).toHaveBeenCalledWith(testEnvVars.NOTIFY_TEMPLATE_ID_EMERGENCY_CONTACT_LIST, testEnvVars.NOTIFY_SEND_TO_EMAIL_ADDRESS, { personalisation: { linkToFile: sasUrl } })
       expect(context.log).toHaveBeenCalledTimes(3)
       expect(context.log).toHaveBeenNthCalledWith(1, `Uploaded file: ${zipFilename} to container: ${testEnvVars.PHONE_NUMBERS_CONTAINER}.`)
       expect(context.log).toHaveBeenNthCalledWith(2, `Generated sasUrl: ${sasUrl}.`)
-      expect(context.log).toHaveBeenNthCalledWith(3, `Sent email to: ${testEnvVars.PHONE_NUMBERS_EMAIL_ADDRESS}.`)
+      expect(context.log).toHaveBeenNthCalledWith(3, `Sent email to: ${testEnvVars.NOTIFY_SEND_TO_EMAIL_ADDRESS}.`)
     })
   })
 
