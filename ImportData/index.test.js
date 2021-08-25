@@ -30,9 +30,13 @@ describe('ImportData function', () => {
     logs.forEach((log, i) => expect(context.log).toHaveBeenNthCalledWith(i + 1, log))
   }
 
-  function expectEmailToBeSent (content) {
+  function expectEmailCall (content) {
     expect(NotifyClient.prototype.sendEmail).toHaveBeenCalled()
     expect(NotifyClient.prototype.sendEmail).toHaveBeenCalledWith(testEnvVars.NOTIFY_TEMPLATE_ID_DATA_IMPORT_REPORT, testEnvVars.NOTIFY_SEND_TO_EMAIL_ADDRESS, { personalisation: { content: expect.stringContaining(content) } })
+  }
+
+  function expectEmailToBeSent (content) {
+    expectEmailCall(content)
     expect(context.log).toHaveBeenCalledWith(`Sent email to: ${testEnvVars.NOTIFY_SEND_TO_EMAIL_ADDRESS}.`)
   }
 
@@ -428,7 +432,7 @@ describe('ImportData function', () => {
     }]))
   })
 
-  test('an error is logged when an update response contains an handled statusCode', async () => {
+  test('an error is logged when an update response contains an unhandled statusCode', async () => {
     const usersToImport = [{ emailAddress: 'a@a.com' }]
     const unhandldedResponse = { requestCharge: 0, resourceBody: { id: usersToImport[0].emailAddress }, statusCode: 409 }
     fetchAllMock.mockResolvedValueOnce({ resources: [] })
@@ -448,11 +452,22 @@ describe('ImportData function', () => {
     expect(context.log.error).toHaveBeenCalledWith(unhandldedResponse)
   })
 
+  test('an error during email sending is thrown (and logged)', async () => {
+    bindUsersForImport([])
+    NotifyClient.prototype.sendEmail.mockRejectedValue(new Error())
+
+    await expect(importData(context)).rejects.toThrow(Error)
+
+    expect(context.log.error).toHaveBeenCalledTimes(1)
+    expectEmailCall('There were no users to import')
+  })
+
   test('an error is thrown (and logged) when an error occurs', async () => {
     // Doesn't matter what causes the error, just that an error is thrown
     context.bindings = null
 
     await expect(importData(context)).rejects.toThrow(Error)
+
     expect(context.log.error).toHaveBeenCalledTimes(1)
     expectEmailToBeSent('Import failed. Message: Cannot destructure property \'blobContents\'')
   })

@@ -46,29 +46,33 @@ module.exports = async context => {
   let emailContent
 
   try {
-    const usersToImport = getUsersToImport(context)
+    try {
+      const usersToImport = getUsersToImport(context)
 
-    if (!usersToImport.length) {
-      context.log.warn('No users to import, returning early.')
-      emailContent = 'There were no users to import.'
-      return
+      if (!usersToImport.length) {
+        context.log.warn('No users to import, returning early.')
+        emailContent = 'There were no users to import.'
+        return
+      }
+      context.log(`Users to import: ${usersToImport.length}.`)
+
+      const existingUsers = await getExistingUsers(usersContainer)
+      context.log(`Users already existing: ${existingUsers.length}.`)
+
+      const users = categoriseUsers(usersToImport, existingUsers)
+
+      savePhoneNumbersFile(context, users)
+      await upsertUsers(context, usersContainer, users)
+      emailContent = 'Import was successful'
+    } catch (e) {
+      emailContent = 'Import failed. Message: ' + e.message
+      throw new Error(e)
+    } finally {
+      await sendEmail(context, emailContent)
     }
-    context.log(`Users to import: ${usersToImport.length}.`)
-
-    const existingUsers = await getExistingUsers(usersContainer)
-    context.log(`Users already existing: ${existingUsers.length}.`)
-
-    const users = categoriseUsers(usersToImport, existingUsers)
-
-    savePhoneNumbersFile(context, users)
-    await upsertUsers(context, usersContainer, users)
-    emailContent = 'Import was successful'
   } catch (e) {
     context.log.error(e)
-    emailContent = 'Import failed. Message: ' + e.message
     // Throwing an error ensures the built-in retry will kick in
     throw new Error(e)
-  } finally {
-    await sendEmail(context, emailContent)
   }
 }
