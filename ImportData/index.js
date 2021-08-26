@@ -64,7 +64,7 @@ module.exports = async context => {
       await upsertUsers(context, usersContainer, users)
       emailContent = generateReport(users)
     } catch (e) {
-      emailContent = 'Import failed. Message: ' + e.message
+      emailContent = 'Import failed.\nError message: ' + e.message
       throw new Error(e)
     } finally {
       await sendEmail(context, emailContent)
