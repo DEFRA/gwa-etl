@@ -36,9 +36,9 @@ async function sendEmail (context, content) {
   context.log(`Sent email to: ${emailAddress}.`)
 }
 
-function savePhoneNumbersFile (context, users) {
+function savePhoneNumbersFile (context, activeUsers) {
   const header = 'phone number'
-  context.bindings.phoneNumbers = `${header}\n${getActivePhoneNumbers(users).join('\n')}`
+  context.bindings.phoneNumbers = `${header}\n${getActivePhoneNumbers(activeUsers).join('\n')}`
 }
 
 module.exports = async context => {
@@ -60,7 +60,7 @@ module.exports = async context => {
 
       const users = categoriseUsers(usersToImport, existingUsers)
 
-      savePhoneNumbersFile(context, users)
+      savePhoneNumbersFile(context, users.activeUsers)
       await upsertUsers(context, usersContainer, users)
       emailContent = generateReport(users)
     } catch (e) {

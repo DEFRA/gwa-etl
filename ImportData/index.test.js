@@ -134,7 +134,7 @@ describe('ImportData function', () => {
     const expectedPhoneNumbers = getExpectedPhoneNumberOutput([existingPhoneNumbers[1].number, existingPhoneNumbers[0].number, usersToImport[0].phoneNumbers[1]])
     expect(phoneNumbersOutput).toHaveLength(expectedPhoneNumbers.length)
     expect(phoneNumbersOutput).toEqual(expectedPhoneNumbers)
-    const expectedReport = 'Import was successful.\n0 users were created.\n1 user was updated.\n0 users were set inactive.'
+    const expectedReport = 'Import was successful.\n1 user was set active.\n0 users were set inactive.'
     expectEmailToBeSent(expectedReport)
     expectLoggingToBeCorrect([
       `Users to import: ${usersToImport.length}.`,
@@ -181,7 +181,7 @@ describe('ImportData function', () => {
     const expectedPhoneNumbers = getExpectedPhoneNumberOutput([existingPhoneNumbers[1].number, usersToImport[0].phoneNumbers[0]])
     expect(phoneNumbersOutput).toHaveLength(expectedPhoneNumbers.length)
     expect(phoneNumbersOutput).toEqual(expectedPhoneNumbers)
-    const expectedReport = 'Import was successful.\n0 users were created.\n1 user was updated.\n0 users were set inactive.'
+    const expectedReport = 'Import was successful.\n1 user was set active.\n0 users were set inactive.'
     expectEmailToBeSent(expectedReport)
     expectLoggingToBeCorrect([
       `Users to import: ${usersToImport.length}.`,
@@ -259,7 +259,7 @@ describe('ImportData function', () => {
     const expectedPhoneNumbers = getExpectedPhoneNumberOutput([])
     expect(phoneNumbersOutput).toHaveLength(expectedPhoneNumbers.length)
     expect(phoneNumbersOutput).toEqual(expectedPhoneNumbers)
-    const expectedReport = 'Import was successful.\n1 user was created.\n0 users were updated.\n0 users were set inactive.'
+    const expectedReport = 'Import was successful.\n1 user was set active.\n0 users were set inactive.'
     expectEmailToBeSent(expectedReport)
     expectLoggingToBeCorrect([
       `Users to import: ${usersToImport.length}.`,
@@ -306,7 +306,7 @@ describe('ImportData function', () => {
     const expectedPhoneNumbers = getExpectedPhoneNumberOutput([])
     expect(phoneNumbersOutput).toHaveLength(expectedPhoneNumbers.length)
     expect(phoneNumbersOutput).toEqual(expectedPhoneNumbers)
-    const expectedReport = 'Import was successful.\n1 user was created.\n0 users were updated.\n1 user was set inactive.'
+    const expectedReport = 'Import was successful.\n1 user was set active.\n1 user was set inactive.'
     expectEmailToBeSent(expectedReport)
     expectLoggingToBeCorrect([
       `Users to import: ${usersToImport.length}.`,
