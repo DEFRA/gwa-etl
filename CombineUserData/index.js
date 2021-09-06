@@ -9,7 +9,7 @@ const dataExtractContainer = process.env.DATA_EXTRACT_CONTAINER
 
 const containerClient = new ContainerClient(connectionString, dataExtractContainer)
 
-module.exports = async function (context) {
+module.exports = async context => {
   try {
     const { triggerFilename } = context.bindingData
     const { blobContents } = context.bindings
