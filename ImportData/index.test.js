@@ -284,7 +284,7 @@ describe('ImportData function', () => {
 
   test('an existing record with no item to import is set inactive (leavers)', async () => {
     const previousImportDate = 12345567890
-    const existingUsers = [{ id: 'a@a.com', existingProp: 'existingProp', sharedProp: 'existingUser', importDate: previousImportDate, orgCode: orgCodeActive }]
+    const existingUsers = [{ id: 'a@a.com', existingProp: 'existingProp', sharedProp: 'existingUser', importDate: previousImportDate }]
     fetchAllMock.mockResolvedValueOnce({ resources: existingUsers })
     const usersToImport = [{ emailAddress: 'B@B.COM', newProp: 'newProp', sharedProp: 'importUser', orgCode: orgCodeActive }]
     bindUsersForImport(usersToImport)
