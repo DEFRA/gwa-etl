@@ -14,11 +14,14 @@ const notifyClient = new NotifyClient(notifyClientApiKey)
 
 const connectionString = process.env.COSMOS_DB_CONNECTION_STRING
 const dbName = process.env.COSMOS_DB_NAME
+const refDataContainerName = process.env.COSMOS_DB_REFDATA_CONTAINER
 const usersContainerName = process.env.COSMOS_DB_USERS_CONTAINER
 
 const client = new CosmosClient(connectionString)
 const db = client.database(dbName)
+const refDataContainer = db.container(refDataContainerName)
 const usersContainer = db.container(usersContainerName)
+const organisationListDocumentId = 'organisationList'
 
 function getUsersToImport (context) {
   const { blobContents } = context.bindings
@@ -55,10 +58,19 @@ module.exports = async context => {
       }
       context.log(`Users to import: ${usersToImport.length}.`)
 
-      const existingUsers = await getExistingUsers(usersContainer)
+      const [existingUsers, orgListRefDataResponse] = await Promise.all([
+        getExistingUsers(usersContainer),
+        refDataContainer.item(organisationListDocumentId, organisationListDocumentId).read()
+      ])
+
       context.log(`Users already existing: ${existingUsers.length}.`)
 
-      const users = categoriseUsers(usersToImport, existingUsers)
+      const organisationListRefData = orgListRefDataResponse?.resource?.data
+      if (!organisationListRefData) {
+        throw new Error(`No reference data retrieved for ${organisationListDocumentId}.`)
+      }
+
+      const users = categoriseUsers(usersToImport, existingUsers, organisationListRefData)
 
       savePhoneNumbersFile(context, users.activeUsers)
       await upsertUsers(context, usersContainer, users)
