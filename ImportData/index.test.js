@@ -16,12 +16,12 @@ describe('ImportData function', () => {
 
   const orgCodeActive = 'ACTIVE'
   const orgCodeInactive = 'INACTIVE'
-  let importData
   let CosmosClient
   let NotifyClient
   let bulkMock
   let containerMock
   let fetchAllMock
+  let importData
   let itemMock
   let queryMock
   let readMock
