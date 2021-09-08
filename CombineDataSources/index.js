@@ -59,7 +59,7 @@ function createMapOfNonInternalUsersWithCount (nonInternalUsers) {
   return nonInternalUserMap
 }
 
-module.exports = async function (context) {
+module.exports = async context => {
   try {
     const { blobTrigger, userDataBlobName } = context.bindingData
     const { blobContents } = context.bindings

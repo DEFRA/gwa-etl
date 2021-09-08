@@ -13,6 +13,12 @@ movers i.e. changes in organisation, location, phone number(s), etc.). Users
 already in the database and not in the import dataset will be marked
 as inactive (accounting for leavers).
 
+If the state of the organisation a user belongs to is inactive this will
+override the user's active state and will result in the user being marked as
+inactive. If the state of the organisation is active the state of the user is
+honoured as above. This provides a mechanism to deactivate all users based on
+the state of the organisation.
+
 The function also generates a CSV file of phone numbers of active users and
 uploads it to a blob storage container. The intention of the file is to be used
 as an emergency contact list that could be uploaded directly to GOV.UK Notify.

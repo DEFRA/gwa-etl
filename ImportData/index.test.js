@@ -14,13 +14,17 @@ describe('ImportData function', () => {
   const importDate = Date.now()
   Date.now = jest.fn(() => importDate)
 
-  let importData
+  const orgCodeActive = 'ACTIVE'
+  const orgCodeInactive = 'INACTIVE'
   let CosmosClient
   let NotifyClient
   let bulkMock
   let containerMock
   let fetchAllMock
+  let importData
+  let itemMock
   let queryMock
+  let readMock
 
   function bindUsersForImport (users) {
     context.bindings[inputBindingName] = Buffer.from(JSON.stringify(users))
@@ -51,11 +55,15 @@ describe('ImportData function', () => {
     NotifyClient = require('notifications-node-client').NotifyClient
     CosmosClient = require('@azure/cosmos').CosmosClient
 
+    readMock = jest.fn()
+      .mockResolvedValueOnce({ resource: { data: [{ orgCode: orgCodeActive, active: true }, { orgCode: orgCodeInactive, active: false }] } })
+    itemMock = jest.fn(() => { return { read: readMock } })
     bulkMock = jest.fn()
     fetchAllMock = jest.fn()
     queryMock = jest.fn(() => { return { fetchAll: fetchAllMock } })
     containerMock = jest.fn(() => {
       return {
+        item: itemMock,
         items: {
           bulk: bulkMock,
           query: queryMock
@@ -75,8 +83,9 @@ describe('ImportData function', () => {
     const databaseMock = CosmosClient.mock.instances[0].database
     expect(databaseMock).toHaveBeenCalledTimes(1)
     expect(databaseMock).toHaveBeenCalledWith(testEnvVars.COSMOS_DB_NAME)
-    expect(containerMock).toHaveBeenCalledTimes(1)
-    expect(containerMock).toHaveBeenCalledWith(testEnvVars.COSMOS_DB_USERS_CONTAINER)
+    expect(containerMock).toHaveBeenCalledTimes(2)
+    expect(containerMock).toHaveBeenNthCalledWith(1, testEnvVars.COSMOS_DB_REFDATA_CONTAINER)
+    expect(containerMock).toHaveBeenNthCalledWith(2, testEnvVars.COSMOS_DB_USERS_CONTAINER)
     expect(NotifyClient).toHaveBeenCalledTimes(1)
     expect(NotifyClient).toHaveBeenCalledWith(testEnvVars.NOTIFY_CLIENT_API_KEY)
   })
@@ -101,7 +110,7 @@ describe('ImportData function', () => {
     const existingUsers = [{ id: 'a@a.com', phoneNumbers: [{ number: '07700111111', subscribedTo: ['THIS', 'THAT'], type: phoneNumberTypes.corporate }, { number: '07700333333', type: phoneNumberTypes.personal }], existingProp: 'existingProp', sharedProp: 'existingUser' }]
     const existingPhoneNumbers = existingUsers[0].phoneNumbers
     fetchAllMock.mockResolvedValueOnce({ resources: existingUsers })
-    const usersToImport = [{ emailAddress: 'A@A.COM', phoneNumbers: ['07700111111', '07700222222'], newProp: 'newProp', sharedProp: 'importUser' }]
+    const usersToImport = [{ emailAddress: 'A@A.COM', phoneNumbers: ['07700111111', '07700222222'], newProp: 'newProp', sharedProp: 'importUser', orgCode: orgCodeActive }]
     bindUsersForImport(usersToImport)
     bulkMock.mockResolvedValueOnce([
       { requestCharge: 10, resourceBody: { id: existingUsers[0].id }, statusCode: 200 }
@@ -134,7 +143,7 @@ describe('ImportData function', () => {
     const expectedPhoneNumbers = getExpectedPhoneNumberOutput([existingPhoneNumbers[1].number, existingPhoneNumbers[0].number, usersToImport[0].phoneNumbers[1]])
     expect(phoneNumbersOutput).toHaveLength(expectedPhoneNumbers.length)
     expect(phoneNumbersOutput).toEqual(expectedPhoneNumbers)
-    const expectedReport = 'Import was successful.\n0 users were created.\n1 user was updated.\n0 users were set inactive.'
+    const expectedReport = 'Import was successful.\n1 user was set active.\n0 users were set inactive.'
     expectEmailToBeSent(expectedReport)
     expectLoggingToBeCorrect([
       `Users to import: ${usersToImport.length}.`,
@@ -152,7 +161,7 @@ describe('ImportData function', () => {
     const existingUsers = [{ id: 'a@a.com', phoneNumbers: [{ number: '07700111111', type: phoneNumberTypes.corporate, subscribedTo: ['THIS', 'THAT'] }, { number: '07700333333', type: phoneNumberTypes.personal }] }]
     const existingPhoneNumbers = existingUsers[0].phoneNumbers
     fetchAllMock.mockResolvedValueOnce({ resources: existingUsers })
-    const usersToImport = [{ emailAddress: 'A@A.COM', phoneNumbers: ['07777222222'] }]
+    const usersToImport = [{ emailAddress: 'A@A.COM', phoneNumbers: ['07777222222'], orgCode: orgCodeActive }]
     bindUsersForImport(usersToImport)
     bulkMock.mockResolvedValueOnce([
       { requestCharge: 10, resourceBody: { id: existingUsers[0].id }, statusCode: 200 }
@@ -181,7 +190,7 @@ describe('ImportData function', () => {
     const expectedPhoneNumbers = getExpectedPhoneNumberOutput([existingPhoneNumbers[1].number, usersToImport[0].phoneNumbers[0]])
     expect(phoneNumbersOutput).toHaveLength(expectedPhoneNumbers.length)
     expect(phoneNumbersOutput).toEqual(expectedPhoneNumbers)
-    const expectedReport = 'Import was successful.\n0 users were created.\n1 user was updated.\n0 users were set inactive.'
+    const expectedReport = 'Import was successful.\n1 user was set active.\n0 users were set inactive.'
     expectEmailToBeSent(expectedReport)
     expectLoggingToBeCorrect([
       `Users to import: ${usersToImport.length}.`,
@@ -198,7 +207,7 @@ describe('ImportData function', () => {
   test('an item to import with the existing record having no phone numbers will add the new number', async () => {
     const existingUsers = [{ id: 'a@a.com', phoneNumbers: [] }]
     fetchAllMock.mockResolvedValueOnce({ resources: existingUsers })
-    const usersToImport = [{ emailAddress: 'A@A.COM', phoneNumbers: ['07777222222'] }]
+    const usersToImport = [{ emailAddress: 'A@A.COM', phoneNumbers: ['07777222222'], orgCode: orgCodeActive }]
     bindUsersForImport(usersToImport)
     bulkMock.mockResolvedValueOnce([
       { requestCharge: 10, resourceBody: { id: existingUsers[0].id }, statusCode: 200 }
@@ -231,7 +240,7 @@ describe('ImportData function', () => {
   test('an item to import with no existing record is created (joiners) with correct schema', async () => {
     const existingUsers = []
     fetchAllMock.mockResolvedValueOnce({ resources: existingUsers })
-    const usersToImport = [{ emailAddress: 'A@A.COM', newProp: 'newProp', sharedProp: 'importUser' }]
+    const usersToImport = [{ emailAddress: 'A@A.COM', newProp: 'newProp', sharedProp: 'importUser', orgCode: orgCodeActive }]
     bindUsersForImport(usersToImport)
     bulkMock.mockResolvedValueOnce([
       { requestCharge: 10, resourceBody: { id: usersToImport[0].emailAddress.toLowerCase() }, statusCode: 201 }
@@ -259,7 +268,7 @@ describe('ImportData function', () => {
     const expectedPhoneNumbers = getExpectedPhoneNumberOutput([])
     expect(phoneNumbersOutput).toHaveLength(expectedPhoneNumbers.length)
     expect(phoneNumbersOutput).toEqual(expectedPhoneNumbers)
-    const expectedReport = 'Import was successful.\n1 user was created.\n0 users were updated.\n0 users were set inactive.'
+    const expectedReport = 'Import was successful.\n1 user was set active.\n0 users were set inactive.'
     expectEmailToBeSent(expectedReport)
     expectLoggingToBeCorrect([
       `Users to import: ${usersToImport.length}.`,
@@ -277,7 +286,7 @@ describe('ImportData function', () => {
     const previousImportDate = 12345567890
     const existingUsers = [{ id: 'a@a.com', existingProp: 'existingProp', sharedProp: 'existingUser', importDate: previousImportDate }]
     fetchAllMock.mockResolvedValueOnce({ resources: existingUsers })
-    const usersToImport = [{ emailAddress: 'B@B.COM', newProp: 'newProp', sharedProp: 'importUser' }]
+    const usersToImport = [{ emailAddress: 'B@B.COM', newProp: 'newProp', sharedProp: 'importUser', orgCode: orgCodeActive }]
     bindUsersForImport(usersToImport)
     bulkMock.mockResolvedValueOnce([
       { requestCharge: 10, resourceBody: { id: existingUsers[0].id }, statusCode: 200 },
@@ -306,7 +315,7 @@ describe('ImportData function', () => {
     const expectedPhoneNumbers = getExpectedPhoneNumberOutput([])
     expect(phoneNumbersOutput).toHaveLength(expectedPhoneNumbers.length)
     expect(phoneNumbersOutput).toEqual(expectedPhoneNumbers)
-    const expectedReport = 'Import was successful.\n1 user was created.\n0 users were updated.\n1 user was set inactive.'
+    const expectedReport = 'Import was successful.\n1 user was set active.\n1 user was set inactive.'
     expectEmailToBeSent(expectedReport)
     expectLoggingToBeCorrect([
       `Users to import: ${usersToImport.length}.`,
@@ -394,9 +403,9 @@ describe('ImportData function', () => {
   })
 
   test('users updated and created share the same import date and report correctly', async () => {
-    const existingUsers = [{ id: 'a@a.com', phoneNumbers: [], existingProp: 'existingProp', importDate: 1234567890 }]
+    const existingUsers = [{ id: 'a@a.com', phoneNumbers: [], existingProp: 'existingProp', importDate: 1234567890, orgCode: orgCodeActive }]
     fetchAllMock.mockResolvedValueOnce({ resources: existingUsers })
-    const usersToImport = [{ emailAddress: 'a@a.com', phoneNumbers: [], newProp: 'newProp' }, { emailAddress: 'b@b.com', phoneNumbers: [], newProp: 'newProp', sharedProp: 'importUser' }]
+    const usersToImport = [{ emailAddress: 'a@a.com', phoneNumbers: [], newProp: 'newProp' }, { emailAddress: 'b@b.com', phoneNumbers: [], newProp: 'newProp', sharedProp: 'importUser', orgCode: orgCodeActive }]
     bindUsersForImport(usersToImport)
     bulkMock.mockResolvedValueOnce([
       { requestCharge: 10, resourceBody: { id: usersToImport[0].emailAddress }, statusCode: 200 },
@@ -408,6 +417,15 @@ describe('ImportData function', () => {
     expect(Date.now).toHaveBeenCalledTimes(1)
     expect(bulkMock).toHaveBeenCalledWith(expect.arrayContaining([{
       operationType: 'Upsert',
+      partitionKey: usersToImport[0].emailAddress,
+      resourceBody: expect.objectContaining({
+        active: true,
+        id: usersToImport[0].emailAddress,
+        importDate,
+        newProp: usersToImport[0].newProp
+      })
+    }, {
+      operationType: 'Upsert',
       partitionKey: usersToImport[1].emailAddress,
       resourceBody: expect.objectContaining({
         active: true,
@@ -416,20 +434,11 @@ describe('ImportData function', () => {
         newProp: usersToImport[1].newProp,
         sharedProp: usersToImport[1].sharedProp
       })
-    }, {
-      operationType: 'Upsert',
-      partitionKey: usersToImport[0].emailAddress,
-      resourceBody: expect.objectContaining({
-        active: true,
-        id: usersToImport[0].emailAddress,
-        importDate,
-        newProp: usersToImport[0].newProp
-      })
     }]))
   })
 
   test('an error is logged when an update response contains an unhandled statusCode', async () => {
-    const usersToImport = [{ emailAddress: 'a@a.com' }]
+    const usersToImport = [{ emailAddress: 'a@a.com', orgCode: orgCodeActive }]
     const unhandldedResponse = { requestCharge: 0, resourceBody: { id: usersToImport[0].emailAddress }, statusCode: 409 }
     fetchAllMock.mockResolvedValueOnce({ resources: [] })
     bindUsersForImport(usersToImport)
@@ -446,6 +455,18 @@ describe('ImportData function', () => {
     expect(bulkMock.mock.calls[1][0]).toHaveLength(1)
     expect(context.log.error).toHaveBeenCalledTimes(1)
     expect(context.log.error).toHaveBeenCalledWith(unhandldedResponse)
+  })
+
+  test('an error is logged when there is no org list ref data', async () => {
+    const usersToImport = [{ emailAddress: 'a@a.com' }]
+    bindUsersForImport(usersToImport)
+    fetchAllMock.mockResolvedValueOnce({ resources: [] })
+    readMock = jest.fn().mockResolvedValueOnce(null)
+
+    await expect(importData(context)).rejects.toThrow(Error)
+
+    expect(context.log.error).toHaveBeenCalledTimes(1)
+    expectEmailToBeSent('Import failed.\nError message: No reference data retrieved for organisationList.')
   })
 
   test('an error during email sending is thrown (and logged)', async () => {

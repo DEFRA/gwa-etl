@@ -27,7 +27,7 @@ const cca = new msal.ConfidentialClientApplication({
   }
 })
 
-module.exports = async function (context) {
+module.exports = async context => {
   try {
     const officeLocationMapRefData = (await refDataContainer.item(officeLocationMapDocumentId, officeLocationMapDocumentId).read())?.resource
     if (!officeLocationMapRefData) {
