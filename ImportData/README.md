@@ -19,11 +19,12 @@ inactive. If the state of the organisation is active the state of the user is
 honoured as above. This provides a mechanism to deactivate all users based on
 the state of the organisation.
 
-The function also generates a CSV file of phone numbers of active users and
-uploads it to a blob storage container. The intention of the file is to be used
-as an emergency contact list that could be uploaded directly to GOV.UK Notify.
-This could be needed if the web app became unavailable for any reason.
-The file is just a list of all active user's phone numbers and nothing more.
+The function also generates a CSV file of unique phone numbers from active
+users and uploads it to a blob storage container. The intention of the file is
+to be used as an emergency contact list that could be uploaded directly to
+GOV.UK Notify. This could be needed if the web app became unavailable for any
+reason. The file is just a list of all active user's phone numbers and nothing
+more.
 
 The function will also send an email via
 [GOV.UK Notify](https://docs.notifications.service.gov.uk/node.html#send-an-email)
