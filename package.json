@@ -15,7 +15,7 @@
     "archiver-zip-encrypted": "^1.0.10",
     "google-libphonenumber": "^3.2.21",
     "joi": "^17.4.0",
-    "node-fetch": "^2.6.1",
+    "node-fetch": "^3.1.1",
     "notifications-node-client": "^5.1.0",
     "uuid": "^8.3.2"
   },
