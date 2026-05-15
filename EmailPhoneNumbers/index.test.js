@@ -32,9 +32,10 @@ describe('EmailPhoneNumbers function', () => {
     NotifyClient = require('notifications-node-client').NotifyClient
 
     context.bindings[inputBindingName] = triggerFileContents
+  })
 
+  afterEach(async () => {
     await removeFile(zipPath)
-    expect(await exists(zipPath)).toEqual(false)
   })
 
   describe('happy path', () => {
